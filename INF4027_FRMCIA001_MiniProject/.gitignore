@@ -41,3 +41,7 @@ serviceAccountKey.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+serviceAccountKey.json
+.env.local
+.DS_Store
