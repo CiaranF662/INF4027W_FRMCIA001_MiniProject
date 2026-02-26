@@ -39,6 +39,8 @@ export async function GET(request) {
             minPrice: searchParams.get('minPrice'),
             maxPrice: searchParams.get('maxPrice'),
             sortBy: searchParams.get('sortBy') || 'newest',
+            // onSale=true filters to only products with a genuine discount (originalPrice > price)
+            onSale: searchParams.get('onSale'),
             // If request comes from admin panel, show all products including sold/removed
             adminView: searchParams.get('adminView') === 'true'
         };

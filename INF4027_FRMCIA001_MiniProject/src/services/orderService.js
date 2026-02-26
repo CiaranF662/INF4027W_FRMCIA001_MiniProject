@@ -96,12 +96,16 @@ class OrderService extends FirestoreService {
      * @returns {Array} all orders for that customer, newest first
      */
     async getOrdersByUser(userId) {
-        const snapshot = await this.collection.where('buyerId', '==', userId).orderBy('createdAt', 'desc').get();
+        // Filter in Firestore, sort in JavaScript — avoids needing a composite index
+        const snapshot = await this.collection.where('buyerId', '==', userId).get();
 
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        return snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .sort((a, b) => {
+                const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
+                const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
+                return dateB - dateA; // newest first
+            });
     }
 
     /**
@@ -112,15 +116,16 @@ class OrderService extends FirestoreService {
      * @returns {Array} all orders with that status
      */
     async getOrdersByStatus(status) {
-        const snapshot = await this.collection
-            .where('status', '==', status)
-            .orderBy('createdAt', 'desc')
-            .get();
+        // Filter in Firestore, sort in JavaScript — avoids needing a composite index
+        const snapshot = await this.collection.where('status', '==', status).get();
 
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        return snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .sort((a, b) => {
+                const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
+                const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
+                return dateB - dateA; // newest first
+            });
     }
 
     /**

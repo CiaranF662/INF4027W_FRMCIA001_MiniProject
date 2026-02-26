@@ -1,6 +1,7 @@
 // src/services/productService.js                                                                                                                                            
 
 import FirestoreService from './baseService';
+import admin from '@/lib/firebaseAdmin';
 import { adminDb } from '@/lib/firebaseAdmin';
 
 /**
@@ -66,6 +67,11 @@ class ProductService extends FirestoreService {
         // --- IN-MEMORY FILTERING ---
         // Apply each filter only if a value was provided for it
 
+        // Sale filter — only keep products that have a genuine discount (originalPrice > price)
+        if (filters.onSale === 'true') {
+            products = products.filter(p => p.originalPrice && p.originalPrice > p.price);
+        }
+
         if (filters.category) {
             products = products.filter(p => p.category === filters.category);
         }
@@ -109,12 +115,14 @@ class ProductService extends FirestoreService {
             products = products.filter(p => p.colour === filters.colour);
         }
 
-        // Price range filter — only apply the bound if a value was given
-        if (filters.minPrice !== undefined) {
+        // Price range filter — only apply if a real value was given
+        // We check for null AND undefined because searchParams.get() returns null (not undefined)
+        // when a query param is missing. Number(null) === 0, which would wrongly filter everything out.
+        if (filters.minPrice != null && filters.minPrice !== '') {
             products = products.filter(p => p.price >= Number(filters.minPrice));
         }
 
-        if (filters.maxPrice !== undefined) {
+        if (filters.maxPrice != null && filters.maxPrice !== '') {
             products = products.filter(p => p.price <= Number(filters.maxPrice));
         }
 
@@ -159,16 +167,17 @@ class ProductService extends FirestoreService {
      * @returns {Array} up to 6 products
      */
     async getFeatured() {
-        const snapshot = await this.collection
-            .where('status', '==', 'available')
-            .orderBy('createdAt', 'desc')
-            .limit(6)
-            .get();
+        // Filter in Firestore, sort and limit in JavaScript — avoids needing a composite index
+        const snapshot = await this.collection.where('status', '==', 'available').get();
 
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        return snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .sort((a, b) => {
+                const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
+                const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
+                return dateB - dateA;
+            })
+            .slice(0, 6);
     }
 
     /**
@@ -178,16 +187,17 @@ class ProductService extends FirestoreService {
      * @returns {Array} the newest products
      */
     async getLatest(limit = 8) {
-        const snapshot = await this.collection
-            .where('status', '==', 'available')
-            .orderBy('createdAt', 'desc')
-            .limit(limit)
-            .get();
+        // Filter in Firestore, sort and limit in JavaScript — avoids needing a composite index
+        const snapshot = await this.collection.where('status', '==', 'available').get();
 
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        return snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .sort((a, b) => {
+                const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
+                const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
+                return dateB - dateA;
+            })
+            .slice(0, limit);
     }
 
     /**
@@ -229,7 +239,7 @@ class ProductService extends FirestoreService {
      */
     async incrementViews(id) {
         await this.collection.doc(id).update({
-            views: adminDb.FieldValue.increment(1)
+            views: admin.firestore.FieldValue.increment(1)  // atomic +1, safe for concurrent views
         });
     }
 

@@ -1,7 +1,7 @@
 // src/services/userService.js                                                                                                                                               
 
 import FirestoreService from './baseService';
-import { adminDb } from '@/lib/firebaseAdmin';
+import admin, { adminDb } from '@/lib/firebaseAdmin';
 
 /**                                                                                                                                                                        
  * UserService — handles all database operations for the 'users' collection.                                                                                                 
@@ -116,7 +116,7 @@ class UserService extends FirestoreService {
     async addToWishlist(uid, productId) {
         await this.collection.doc(uid).update({
             // arrayUnion adds the item only if it doesn't already exist in the array
-            wishlist: adminDb.FieldValue.arrayUnion(productId)
+            wishlist: admin.firestore.FieldValue.arrayUnion(productId)
         });
     }
 
@@ -133,7 +133,7 @@ class UserService extends FirestoreService {
     async removeFromWishlist(uid, productId) {
         await this.collection.doc(uid).update({
             // arrayRemove finds and removes the item from the array
-            wishlist: adminDb.FieldValue.arrayRemove(productId)
+            wishlist: admin.firestore.FieldValue.arrayRemove(productId)
         });
     }
 
