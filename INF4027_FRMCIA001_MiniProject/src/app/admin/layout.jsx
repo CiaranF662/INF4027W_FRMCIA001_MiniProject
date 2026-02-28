@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import {
     BarChart3, Package, LayoutGrid, ShoppingBag, Users,
-    LineChart, PieChart, Activity, LogOut, Settings, ExternalLink
+    LineChart, PieChart, Activity, LogOut, ExternalLink
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -67,10 +67,23 @@ export default function AdminLayout({ children }) {
                 {/* Brand Area */}
                 <div className="h-20 flex items-center px-8 border-b border-[#1f1f2e]/60 mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-600/20">
-                            <span className="text-white font-bold text-lg leading-none">D</span>
+                        {/* DR monogram — white strokes on dark sidebar */}
+                        <svg width="44" height="30" viewBox="0 0 44 30" fill="none" className="shrink-0">
+                            <path
+                                d="M 2 2 L 2 28 M 2 2 L 8 2 C 20 2 23 8 23 15 C 23 22 20 28 8 28 L 2 28"
+                                stroke="rgba(255,255,255,0.9)" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path
+                                d="M 29 2 L 29 28 M 29 2 L 35 2 C 42 2 42 12 35 12 L 29 12 M 35 12 L 42 28"
+                                stroke="rgba(255,255,255,0.9)" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <div className="flex flex-col leading-none" style={{ gap: '3px' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.26em', color: 'rgba(129,140,248,1)', textTransform: 'uppercase', fontFamily: "'Barlow', sans-serif" }}>
+                                Denim
+                            </span>
+                            <span style={{ fontSize: '19px', fontWeight: 800, letterSpacing: '-0.02em', color: 'white', lineHeight: 1, fontFamily: "'Barlow', sans-serif" }}>
+                                Revibe
+                            </span>
                         </div>
-                        <span className="text-xl font-bold tracking-tight text-white">Denim Revibe</span>
                     </div>
                 </div>
 
@@ -132,9 +145,6 @@ export default function AdminLayout({ children }) {
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <button className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors">
-                            <Settings className="w-4 h-4" />
-                        </button>
                     </div>
                 </header>
 
@@ -146,6 +156,7 @@ export default function AdminLayout({ children }) {
 
             <style dangerouslySetInnerHTML={{
                 __html: `
+        @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@700;800&display=swap');
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}} />

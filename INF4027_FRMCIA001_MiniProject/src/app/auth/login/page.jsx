@@ -52,11 +52,25 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen bg-[#FAFAFA] flex flex-col items-center justify-center p-4 selection:bg-indigo-100 selection:text-indigo-900">
 
+            <style>{`@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@700;800&display=swap');`}</style>
             <Link href="/" className="flex items-center gap-3 mb-8 group">
-                <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-600/20 group-hover:scale-105 transition-transform">
-                    <span className="text-white font-bold text-xl leading-none">D</span>
+                <svg width="44" height="30" viewBox="0 0 44 30" fill="none"
+                    className="shrink-0 transition-transform duration-200 group-hover:scale-105">
+                    <path
+                        d="M 2 2 L 2 28 M 2 2 L 8 2 C 20 2 23 8 23 15 C 23 22 20 28 8 28 L 2 28"
+                        stroke="#4F46E5" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path
+                        d="M 29 2 L 29 28 M 29 2 L 35 2 C 42 2 42 12 35 12 L 29 12 M 35 12 L 42 28"
+                        stroke="#4F46E5" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <div className="flex flex-col leading-none" style={{ gap: '3px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.26em', color: '#4F46E5', textTransform: 'uppercase', fontFamily: "'Barlow', sans-serif" }}>
+                        Denim
+                    </span>
+                    <span style={{ fontSize: '19px', fontWeight: 800, letterSpacing: '-0.02em', color: '#111827', lineHeight: 1, fontFamily: "'Barlow', sans-serif" }}>
+                        Revibe
+                    </span>
                 </div>
-                <span className="text-2xl font-bold tracking-tight text-slate-900">Denim Revibe</span>
             </Link>
 
             <Card className="w-full max-w-[400px] border-slate-200/60 shadow-lg shadow-slate-200/40 rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">

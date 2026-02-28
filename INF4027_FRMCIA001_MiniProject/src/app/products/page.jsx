@@ -11,6 +11,23 @@ import FilterSidebar from '@/components/FilterSidebar';
 import ProductGrid from '@/components/ProductGrid';
 import { useAuth } from '@/lib/auth-context';
 
+const PAGE_STYLES = `
+    @keyframes rv-slide-up {
+        from { opacity: 0; transform: translateY(26px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes rv-slide-down {
+        from { opacity: 0; transform: translateY(-14px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .rv-slide-up {
+        animation: rv-slide-up 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .rv-slide-down {
+        animation: rv-slide-down 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+`;
+
 export default function ProductsPage() {
     const searchParams = useSearchParams();
     const { user } = useAuth();
@@ -24,10 +41,6 @@ export default function ProductsPage() {
     const [wishlistIds, setWishlistIds] = useState(new Set());
 
     // Sync filters from the URL whenever the URL changes.
-    // Using [searchParams] as the dependency means this runs every time the user
-    // clicks a Navbar link (Category, Gender, Sale) — not just on first load.
-    // This replaces whatever was in the filter before, so clicking "Men" after
-    // "Sale" correctly switches to the Men filter instead of stacking them.
     useEffect(() => {
         const category = searchParams.get('category');
         const gender   = searchParams.get('gender');
@@ -39,12 +52,11 @@ export default function ProductsPage() {
         if (gender)   filtersFromUrl.push({ group: 'Gender',   value: gender });
         if (onSale === 'true') filtersFromUrl.push({ group: 'OnSale', value: 'true' });
 
-        // Always replace — even if empty (e.g. clicking "Shop All" clears all filters)
         setActiveFilters(filtersFromUrl);
         setSortBy(sortBy || 'newest');
     }, [searchParams]);
 
-    // Fetch the user's saved wishlist IDs once so each ProductCard knows its initial heart state
+    // Fetch the user's saved wishlist IDs once
     useEffect(() => {
         if (!user) { setWishlistIds(new Set()); return; }
         user.getIdToken()
@@ -54,26 +66,29 @@ export default function ProductsPage() {
             .catch(() => {});
     }, [user]);
 
-    // Fetch products from the API whenever filters, price range, or sort changes
+    // Fetch products whenever filters, price range, or sort changes
     const fetchProducts = useCallback(async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
-
-            // Map our activeFilters array to individual query params the API expects
-            // "Category" → "category", "Gender" → "gender", "OnSale" → "onSale"
+            // Group filters by key and join multiple values with a comma so the
+            // API receives ?category=Jeans,Shorts instead of two separate params
+            // (URLSearchParams.get() only returns the first repeated key).
+            const grouped = {};
             activeFilters.forEach(({ group, value }) => {
                 const key = group === 'OnSale' ? 'onSale' : group.toLowerCase();
-                params.append(key, value);
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(value);
             });
-
+            Object.entries(grouped).forEach(([key, values]) => {
+                params.set(key, values.join(','));
+            });
             if (minPrice) params.set('minPrice', minPrice);
             if (maxPrice) params.set('maxPrice', maxPrice);
             if (sortBy) params.set('sortBy', sortBy);
 
             const res = await fetch(`/api/products?${params.toString()}`);
             const data = await res.json();
-            // The API returns the array directly (not wrapped in an object)
             setProducts(Array.isArray(data) ? data : []);
         } catch {
             setProducts([]);
@@ -82,9 +97,7 @@ export default function ProductsPage() {
         }
     }, [activeFilters, minPrice, maxPrice, sortBy]);
 
-    useEffect(() => {
-        fetchProducts();
-    }, [fetchProducts]);
+    useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
     const toggleFilter = (group, value) => {
         const exists = activeFilters.find(f => f.group === group && f.value === value);
@@ -107,17 +120,33 @@ export default function ProductsPage() {
 
     return (
         <div className="min-h-screen bg-[#FAFAFA]">
+            <style dangerouslySetInnerHTML={{ __html: PAGE_STYLES }} />
+
             <div className="container mx-auto px-4 md:px-6 py-8">
 
+                {/* Page Header — staggered slide-up */}
                 <div className="mb-8">
-                    <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mb-2">Vintage & Pre-loved Denim</h1>
-                    <p className="text-slate-500 text-base max-w-2xl">Discover unique, high-quality second-hand pieces. Sustainable, stylish, and full of character.</p>
+                    <h1
+                        className="rv-slide-up text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mb-2"
+                        style={{ animationDelay: '0ms' }}
+                    >
+                        Vintage & Pre-loved Denim
+                    </h1>
+                    <p
+                        className="rv-slide-up text-slate-500 text-base max-w-2xl"
+                        style={{ animationDelay: '80ms' }}
+                    >
+                        Discover unique, high-quality second-hand pieces. Sustainable, stylish, and full of character.
+                    </p>
                 </div>
 
                 <div className="flex flex-col lg:flex-row gap-8 items-start">
 
                     {/* Desktop Filter Sidebar */}
-                    <aside className="hidden lg:block w-[280px] shrink-0 sticky top-6">
+                    <aside
+                        className="rv-slide-up hidden lg:block w-[280px] shrink-0 sticky top-6"
+                        style={{ animationDelay: '120ms' }}
+                    >
                         <div className="bg-white p-5 rounded-xl border border-slate-200/60 shadow-sm overflow-y-auto max-h-[85vh]">
                             <FilterSidebar
                                 activeFilters={activeFilters}
@@ -131,8 +160,11 @@ export default function ProductsPage() {
 
                     <main className="flex-1 w-full min-w-0">
 
-                        {/* Action Bar */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        {/* Action Bar — slides down from above */}
+                        <div
+                            className="rv-slide-down flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
+                            style={{ animationDelay: '160ms' }}
+                        >
                             <div className="flex items-center gap-3">
 
                                 {/* Mobile Filter Sheet */}
@@ -182,26 +214,39 @@ export default function ProductsPage() {
                             </div>
                         </div>
 
-                        {/* Active Filter Chips */}
+                        {/* Active Filter Chips — each one pops in individually */}
                         {activeFilters.length > 0 && (
                             <div className="flex flex-wrap gap-2 mb-6">
                                 {activeFilters.map((filter, index) => (
-                                    <Badge key={index} variant="secondary"
-                                        className="bg-white border-slate-200 text-slate-700 font-normal hover:bg-slate-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-sm shadow-sm">
+                                    <Badge
+                                        key={`${filter.group}-${filter.value}`}
+                                        variant="secondary"
+                                        className="animate-in fade-in zoom-in-95 duration-200 bg-white border border-slate-200 text-slate-700 font-normal hover:bg-slate-50 px-3 py-1.5 rounded-full flex items-center gap-1.5 text-sm shadow-sm"
+                                        style={{ animationDelay: `${index * 35}ms` }}
+                                    >
                                         <span className="text-slate-400">{filter.group}:</span> {filter.value}
-                                        <button onClick={() => removeFilter(filter)}
-                                            className="ml-1 p-0.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors">
+                                        <button
+                                            onClick={() => removeFilter(filter)}
+                                            className="ml-1 p-0.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors"
+                                        >
                                             <X className="w-3 h-3" />
                                         </button>
                                     </Badge>
                                 ))}
-                                <button onClick={clearFilters} className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2">
+                                <button
+                                    onClick={clearFilters}
+                                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2"
+                                >
                                     Clear all
                                 </button>
                             </div>
                         )}
 
-                        <ProductGrid items={products} loading={loading} wishlistIds={wishlistIds} />
+                        <ProductGrid
+                            items={products}
+                            loading={loading}
+                            wishlistIds={wishlistIds}
+                        />
                     </main>
                 </div>
             </div>

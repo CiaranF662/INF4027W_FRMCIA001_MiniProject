@@ -114,7 +114,60 @@ Fit: ${fit || 'Not provided'}`;
     }
 
     /**
-     * FEATURE 3: Report Insights (on-demand only)
+     * FEATURE 3: AI Product Image Analysis
+     * Fetches an image from a URL, encodes it as base64, and asks Gemini to
+     * return structured denim attributes + a listing description in one call.
+     *
+     * Returns: { condition, colour, fit, rise, wash, era, description }
+     * Any field the model can't determine is returned as null.
+     */
+    async analyseProductImage(imageUrl, productDetails) {
+        const { title, brand, category } = productDetails;
+
+        // Fetch the image server-side and convert to base64 for the Gemini multimodal API
+        const imageResp = await fetch(imageUrl);
+        if (!imageResp.ok) throw new Error('Could not fetch image from URL');
+        const imageBuffer = await imageResp.arrayBuffer();
+        const base64Image = Buffer.from(imageBuffer).toString('base64');
+        const mimeType = imageResp.headers.get('content-type')?.split(';')[0] || 'image/jpeg';
+
+        const prompt = `Analyse this denim garment image. Return ONLY valid JSON — no markdown, no code block, no explanation.
+
+{
+  "condition": "one of: New with Tags | Like New | Good | Fair",
+  "colour": "one of: Indigo | Dark Wash | Medium Wash | Light Wash | Black | White | Grey | Raw | Acid Wash",
+  "fit": "one of: Skinny | Slim | Straight | Relaxed | Bootcut | Wide Leg | Mom | Boyfriend | Flare | Baggy — or null if unclear",
+  "rise": "one of: Low Rise | Mid Rise | High Rise — or null if unclear",
+  "wash": "one of: Raw/Unwashed | Dark | Medium | Light | Acid | Distressed | Stone Wash — or null if unclear",
+  "era": "one of: Vintage 70s | Vintage 80s | Vintage 90s | Y2K | Modern — or null if unclear",
+  "description": "2-3 sentences, authentic South African English, casual-premium tone. Do not include price or title."
+}
+
+Product context — Title: ${title || 'Unknown'}, Brand: ${brand || 'Unknown'}, Category: ${category || 'Denim'}`;
+
+        const MAX_RETRIES = 3;
+        let lastError;
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            try {
+                const result = await this.model.generateContent([
+                    { inlineData: { data: base64Image, mimeType } },
+                    { text: prompt },
+                ]);
+                const text = result.response.text();
+                const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                return JSON.parse(cleaned);
+            } catch (err) {
+                lastError = err;
+                const is429 = err?.status === 429 || err?.message?.includes('429');
+                if (!is429 || attempt === MAX_RETRIES - 1) throw err;
+                await new Promise(r => setTimeout(r, Math.pow(2, attempt + 1) * 1000));
+            }
+        }
+        throw lastError;
+    }
+
+    /**
+     * FEATURE 4: Report Insights (on-demand only)
      * Analyzes report data and returns actionable business insights.
      */
     async generateReportInsights(reportType, reportData) {

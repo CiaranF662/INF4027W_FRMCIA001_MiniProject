@@ -30,10 +30,20 @@ class ReportService {
      *   - revenueByCategory    → array for the bar chart (revenue per denim category)
      *   - revenueByPayment     → array for the pie chart (card vs paypal vs cash)
      */
-    async getFinancialReport() {
-        // --- Fetch all data we need upfront ---
+    async getFinancialReport({ startDate, endDate } = {}) {
+        // --- Build orders query — optionally scoped to a date range ---
+        let ordersQuery = adminDb.collection('orders').orderBy('createdAt', 'asc');
+        if (startDate) {
+            ordersQuery = ordersQuery.where('createdAt', '>=', new Date(startDate));
+        }
+        if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            ordersQuery = ordersQuery.where('createdAt', '<=', end);
+        }
+
         const [ordersSnapshot, productsSnapshot] = await Promise.all([
-            adminDb.collection('orders').orderBy('createdAt', 'asc').get(),
+            ordersQuery.get(),
             adminDb.collection('products').get()
         ]);
 
@@ -158,6 +168,15 @@ class ReportService {
             ...doc.data()
         }));
 
+        // --- Top-level inventory metrics ---
+        const soldProducts = products.filter(p => p.status === 'sold');
+        const totalListed = products.length;
+        const totalSold = soldProducts.length;
+        const sellThrough = totalListed > 0 ? Math.round((totalSold / totalListed) * 100) : 0;
+        const avgSellingPrice = soldProducts.length > 0
+            ? Math.round(soldProducts.reduce((sum, p) => sum + (Number(p.price) || 0), 0) / soldProducts.length)
+            : 0;
+
         // --- Most Viewed Products ---
         // Sort all products by their view count, highest first
         const mostViewed = [...products]
@@ -232,6 +251,10 @@ class ReportService {
             .sort((a, b) => b.sold - a.sold);
 
         return {
+            totalListed,
+            totalSold,
+            sellThrough,
+            avgSellingPrice,
             mostViewed,
             bestSellingItems,
             salesByCategory: salesByCategoryArray,
@@ -289,6 +312,11 @@ class ReportService {
             .sort((a, b) => b.totalSpend - a.totalSpend)
             .slice(0, 10);
 
+        const totalRevenue = orders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+        const repeatBuyerCount = Object.values(spendByCustomer).filter(b => b.orderCount > 1).length;
+        const buyersWithOrders = Object.keys(spendByCustomer).length;
+        const avgSpendPerBuyer = buyersWithOrders > 0 ? Math.round(totalRevenue / buyersWithOrders) : 0;
+
         // --- Customer Locations ---
         // Count how many customers are in each city
         const locationCount = {};
@@ -320,6 +348,10 @@ class ReportService {
         return {
             totalCustomers: customers.length,
             totalOrders: orders.length,
+            totalRevenue,
+            repeatBuyerCount,
+            buyersWithOrders,
+            avgSpendPerBuyer,
             topBuyers,
             customerLocations,
             newCustomersByMonth

@@ -149,16 +149,49 @@ export default function Navbar() {
     const saleActive = onProductsPage && isSaleActive;
 
     return (
+        <>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@700;800&display=swap');`}</style>
         <header className="sticky top-0 z-50 w-full bg-white border-b border-slate-200/80 shadow-sm backdrop-blur-md bg-white/90">
             <div className="container mx-auto px-4 md:px-6">
                 <div className="flex h-20 items-center justify-between">
 
                     {/* LEFT: Logo */}
-                    <Link href="/" className="flex items-center gap-2 group">
-                        <div className="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center shadow-md shadow-indigo-600/20 group-hover:scale-105 transition-transform">
-                            <span className="text-white font-bold text-lg leading-none">D</span>
+                    <Link href="/" className="flex items-center gap-3 group">
+                        {/* DR monogram — clean geometric letterform outlines, no background shape */}
+                        <svg
+                            width="44" height="30" viewBox="0 0 44 30" fill="none"
+                            className="shrink-0 transition-transform duration-200 group-hover:scale-105"
+                            aria-hidden="true"
+                        >
+                            {/* D — vertical bar + curved arc */}
+                            <path
+                                d="M 2 2 L 2 28 M 2 2 L 8 2 C 20 2 23 8 23 15 C 23 22 20 28 8 28 L 2 28"
+                                stroke="#4F46E5" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"
+                            />
+                            {/* R — vertical bar + bowl + diagonal leg */}
+                            <path
+                                d="M 29 2 L 29 28 M 29 2 L 35 2 C 42 2 42 12 35 12 L 29 12 M 35 12 L 42 28"
+                                stroke="#4F46E5" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
+                            />
+                        </svg>
+
+                        {/* Stacked two-line wordmark */}
+                        <div className="hidden sm:flex flex-col leading-none" style={{ gap: '3px' }}>
+                            <span style={{
+                                fontSize: '10px', fontWeight: 700, letterSpacing: '0.26em',
+                                color: '#4F46E5', textTransform: 'uppercase',
+                                fontFamily: "'Barlow', sans-serif",
+                            }}>
+                                Denim
+                            </span>
+                            <span style={{
+                                fontSize: '19px', fontWeight: 800, letterSpacing: '-0.02em',
+                                color: '#111827', lineHeight: 1,
+                                fontFamily: "'Barlow', sans-serif",
+                            }}>
+                                Revibe
+                            </span>
                         </div>
-                        <span className="text-xl font-bold tracking-tight text-slate-900 hidden sm:block">Denim Revibe</span>
                     </Link>
 
                     {/* CENTER: Desktop Navigation */}
@@ -480,5 +513,6 @@ export default function Navbar() {
                 </div>
             )}
         </header>
+        </>
     );
 }

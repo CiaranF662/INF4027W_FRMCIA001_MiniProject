@@ -52,7 +52,7 @@ export default function ProductCard({ item, isWishlisted = false }) {
         : (item.discount || 0);
 
     return (
-        <Link href={`/products/${item.id}`} className="group flex flex-col bg-white rounded-xl overflow-hidden border border-slate-200/60 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-300">
+        <Link href={`/products/${item.id}`} className="group flex flex-col bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 hover:border-indigo-200 transition-all duration-300">
 
             {/* Image */}
             <div className="relative aspect-square w-full bg-slate-50 overflow-hidden">
@@ -72,9 +72,9 @@ export default function ProductCard({ item, isWishlisted = false }) {
                 {/* Wishlist heart — always visible on mobile, appears on hover on desktop */}
                 <button
                     onClick={handleWishlist}
-                    className={`absolute top-3 right-3 z-10 p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-sm transition-all duration-200
+                    className={`absolute top-3 right-3 z-10 p-2 rounded-full bg-white shadow-md transition-all duration-200
                         opacity-100 md:opacity-0 md:group-hover:opacity-100
-                        ${wishlisted ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500 hover:bg-white'}`}
+                        ${wishlisted ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'}`}
                 >
                     <Heart className={`w-4 h-4 ${wishlisted ? 'fill-rose-500' : ''}`} />
                 </button>
@@ -108,18 +108,27 @@ export default function ProductCard({ item, isWishlisted = false }) {
                 </h3>
 
                 <div className="flex flex-wrap gap-1.5 mb-4 mt-auto">
+                    {item.gender && (
+                        <Badge variant="secondary" className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full shrink-0 border-0 shadow-none tracking-wide
+                            ${item.gender === 'Men'     ? 'bg-blue-50 text-blue-600'
+                            : item.gender === 'Women'   ? 'bg-rose-50 text-rose-500'
+                            : item.gender === 'Kids'    ? 'bg-amber-50 text-amber-600'
+                            :                             'bg-slate-100 text-slate-500'}`}>
+                            {item.gender}
+                        </Badge>
+                    )}
                     {item.fit && (
-                        <Badge variant="secondary" className="bg-slate-100 text-slate-600 text-[10px] font-medium px-2 py-0.5 rounded-sm shrink-0 border-0 shadow-none">
+                        <Badge variant="secondary" className="bg-stone-100 text-stone-500 text-[10px] font-semibold px-2.5 py-0.5 rounded-full shrink-0 border-0 shadow-none tracking-wide">
                             {item.fit}
                         </Badge>
                     )}
                     {item.size && (
-                        <Badge variant="secondary" className="bg-slate-100 text-slate-600 text-[10px] font-medium px-2 py-0.5 rounded-sm shrink-0 border-0 shadow-none">
+                        <Badge variant="secondary" className="bg-stone-100 text-stone-500 text-[10px] font-semibold px-2.5 py-0.5 rounded-full shrink-0 border-0 shadow-none tracking-wide">
                             W{item.size}
                         </Badge>
                     )}
                     {item.wash && (
-                        <Badge variant="secondary" className="bg-slate-100 text-slate-600 text-[10px] font-medium px-2 py-0.5 rounded-sm shrink-0 border-0 shadow-none">
+                        <Badge variant="secondary" className="bg-stone-100 text-stone-500 text-[10px] font-semibold px-2.5 py-0.5 rounded-full shrink-0 border-0 shadow-none tracking-wide">
                             {item.wash}
                         </Badge>
                     )}
@@ -127,10 +136,10 @@ export default function ProductCard({ item, isWishlisted = false }) {
 
                 {/* Price + Quick Add to Cart button */}
                 <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-baseline gap-2">
                         <span className="text-lg font-bold text-slate-900 tracking-tight">R{item.price}</span>
                         {item.originalPrice > item.price && (
-                            <span className="text-sm font-medium text-slate-400 line-through">R{item.originalPrice}</span>
+                            <span className="text-xs font-medium text-slate-400 line-through">R{item.originalPrice}</span>
                         )}
                     </div>
 
@@ -143,8 +152,8 @@ export default function ProductCard({ item, isWishlisted = false }) {
                             ${item.status === 'sold'
                                 ? 'text-slate-300 cursor-not-allowed'
                                 : addedToCart
-                                    ? 'bg-emerald-100 text-emerald-600'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white'
+                                    ? 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200'
+                                    : 'bg-slate-50 text-slate-500 hover:bg-indigo-600 hover:text-white ring-1 ring-slate-200 hover:ring-indigo-600'
                             }`}
                     >
                         <ShoppingCart className="w-4 h-4" />

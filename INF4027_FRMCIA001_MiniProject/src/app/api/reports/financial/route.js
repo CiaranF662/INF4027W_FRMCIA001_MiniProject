@@ -28,7 +28,11 @@ export async function GET(request) {
             );
         }
 
-        const report = await reportService.getFinancialReport();
+        const { searchParams } = new URL(request.url);
+        const startDate = searchParams.get('startDate') || undefined;
+        const endDate   = searchParams.get('endDate')   || undefined;
+
+        const report = await reportService.getFinancialReport({ startDate, endDate });
         return NextResponse.json(report);
 
     } catch (error) {

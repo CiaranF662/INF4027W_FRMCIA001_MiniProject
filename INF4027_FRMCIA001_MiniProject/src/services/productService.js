@@ -72,47 +72,61 @@ class ProductService extends FirestoreService {
             products = products.filter(p => p.originalPrice && p.originalPrice > p.price);
         }
 
+        // Helper: split a possibly comma-separated filter value into an array
+        // so that ?category=Jeans,Shorts correctly matches both categories.
+        const toArray = (val) => (val ? val.split(',').map(v => v.trim()) : []);
+
         if (filters.category) {
-            products = products.filter(p => p.category === filters.category);
+            const vals = toArray(filters.category);
+            products = products.filter(p => vals.includes(p.category));
         }
 
         if (filters.brand) {
-            products = products.filter(p => p.brand === filters.brand);
+            const vals = toArray(filters.brand);
+            products = products.filter(p => vals.includes(p.brand));
         }
 
         if (filters.condition) {
-            products = products.filter(p => p.condition === filters.condition);
+            const vals = toArray(filters.condition);
+            products = products.filter(p => vals.includes(p.condition));
         }
 
         if (filters.gender) {
+            const vals = toArray(filters.gender);
             products = products.filter(p =>
-                p.gender === filters.gender || p.gender === 'Unisex'
+                vals.includes(p.gender) || p.gender === 'Unisex'
             );
         }
 
         // Denim-specific filters
         if (filters.fit) {
-            products = products.filter(p => p.fit === filters.fit);
+            const vals = toArray(filters.fit);
+            products = products.filter(p => vals.includes(p.fit));
         }
 
         if (filters.rise) {
-            products = products.filter(p => p.rise === filters.rise);
+            const vals = toArray(filters.rise);
+            products = products.filter(p => vals.includes(p.rise));
         }
 
         if (filters.wash) {
-            products = products.filter(p => p.wash === filters.wash);
+            const vals = toArray(filters.wash);
+            products = products.filter(p => vals.includes(p.wash));
         }
 
         if (filters.stretch) {
-            products = products.filter(p => p.stretch === filters.stretch);
+            const vals = toArray(filters.stretch);
+            products = products.filter(p => vals.includes(p.stretch));
         }
 
         if (filters.size) {
-            products = products.filter(p => p.size === filters.size);
+            const vals = toArray(filters.size);
+            products = products.filter(p => vals.includes(p.size));
         }
 
         if (filters.colour) {
-            products = products.filter(p => p.colour === filters.colour);
+            const vals = toArray(filters.colour);
+            products = products.filter(p => vals.includes(p.colour));
         }
 
         // Price range filter — only apply if a real value was given
