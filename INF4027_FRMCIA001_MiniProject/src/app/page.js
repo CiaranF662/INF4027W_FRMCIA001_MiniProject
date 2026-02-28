@@ -3,26 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, Flame, Tag, ArrowRight, Heart, Truck, ShieldCheck, Leaf, Sparkles } from 'lucide-react';
+import { Search, Flame, Tag, ArrowRight, Heart, Truck, ShieldCheck, Leaf, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import ProductCard from '@/components/ProductCard';
-
-// Category chips — simple text links, no emojis
-const CATEGORIES = [
-  { name: "Jeans", query: "Jeans" },
-  { name: "Jackets", query: "Jackets" },
-  { name: "Shorts", query: "Shorts" },
-  { name: "Skirts", query: "Skirts" },
-  { name: "Overalls", query: "Overalls" },
-  { name: "Shirts", query: "Shirts" },
-  { name: "Accessories", query: "Accessories" }
-];
 
 export default function LandingPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [newArrivals, setNewArrivals] = useState([]);
   const [bestDeals, setBestDeals] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [aiSearching, setAiSearching] = useState(false);
 
   useEffect(() => {
     fetch('/api/products?sortBy=newest')
@@ -34,14 +25,44 @@ export default function LandingPage() {
       .then(res => res.json())
       .then(data => setBestDeals(Array.isArray(data) ? data.slice(0, 4) : []))
       .catch(() => setBestDeals([]));
+
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => setCategories(Array.isArray(data) ? data : []))
+      .catch(() => setCategories([]));
   }, []);
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
-    } else {
-      router.push('/products');
+    const q = searchQuery.trim();
+    if (!q) { router.push('/products'); return; }
+
+    setAiSearching(true);
+    try {
+      const res = await fetch('/api/ai/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q }),
+      });
+      const { filters } = await res.json();
+      const params = new URLSearchParams();
+      if (filters.category) params.set('category', filters.category);
+      if (filters.gender) params.set('gender', filters.gender);
+      if (filters.brand) params.set('brand', filters.brand);
+      if (filters.minPrice) params.set('minPrice', filters.minPrice);
+      if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
+      if (filters.size) params.set('size', filters.size);
+      if (filters.condition) params.set('condition', filters.condition);
+      if (filters.fit) params.set('fit', filters.fit);
+      if (filters.wash) params.set('wash', filters.wash);
+      if (filters.onSale) params.set('onSale', filters.onSale);
+      if (filters.sortBy) params.set('sortBy', filters.sortBy);
+      if (filters.search) params.set('search', filters.search);
+      router.push(`/products?${params.toString()}`);
+    } catch {
+      router.push(`/products?search=${encodeURIComponent(q)}`);
+    } finally {
+      setAiSearching(false);
     }
   };
 
@@ -83,27 +104,29 @@ export default function LandingPage() {
               />
               <Button
                 type="submit"
+                disabled={aiSearching}
                 className="absolute right-1.5 h-11 rounded-full px-6 bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold tracking-wide transition-all shadow-lg shadow-indigo-600/30"
               >
-                <Search className="w-4 h-4 mr-1.5" />
-                Search
+                {aiSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Search className="w-4 h-4 mr-1.5" />Search</>}
               </Button>
             </div>
           </form>
 
           {/* Quick category chips below search */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-            <span className="text-xs text-slate-500 font-medium mr-1">Popular:</span>
-            {CATEGORIES.slice(0, 5).map((cat) => (
-              <Link
-                key={cat.name}
-                href={`/products?category=${cat.query}`}
-                className="px-3 py-1 rounded-full text-xs font-semibold text-slate-300 border border-white/15 hover:bg-white/10 hover:text-white hover:border-white/30 transition-all"
-              >
-                {cat.name}
-              </Link>
-            ))}
-          </div>
+          {categories.length > 0 && (
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+              <span className="text-xs text-slate-500 font-medium mr-1">Popular:</span>
+              {categories.slice(0, 5).map((cat) => (
+                <Link
+                  key={cat.name}
+                  href={`/products?category=${cat.name}`}
+                  className="px-3 py-1 rounded-full text-xs font-semibold text-slate-300 border border-white/15 hover:bg-white/10 hover:text-white hover:border-white/30 transition-all"
+                >
+                  {cat.name}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -138,9 +161,9 @@ export default function LandingPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <Link
-              href={`/products?category=${cat.query}`}
+              href={`/products?category=${cat.name}`}
               key={cat.name}
               className="px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700 transition-all duration-200"
             >

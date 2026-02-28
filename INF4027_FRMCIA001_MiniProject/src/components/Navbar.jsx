@@ -3,27 +3,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { ShoppingBag, Heart, Search, Menu, X, User, LogOut, LayoutDashboard, Package, ChevronDown } from 'lucide-react';
+import { ShoppingBag, Heart, Search, Menu, X, User, LogOut, LayoutDashboard, Package, ChevronDown, Sparkles, Loader2 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
 import { getCartCount } from '@/lib/cart';
 import { Badge } from "@/components/ui/badge";
 
-// Denim categories — links to /products with a pre-selected category filter
-const CATEGORIES = [
-    { name: 'Jeans',        href: '/products?category=Jeans' },
-    { name: 'Jackets',      href: '/products?category=Jackets' },
-    { name: 'Shorts',       href: '/products?category=Shorts' },
-    { name: 'Skirts',       href: '/products?category=Skirts' },
-    { name: 'Overalls',     href: '/products?category=Overalls' },
-    { name: 'Shirts',       href: '/products?category=Shirts' },
-    { name: 'Accessories',  href: '/products?category=Accessories' },
-];
-
 const GENDERS = [
-    { name: 'Men',    href: '/products?gender=Men' },
-    { name: 'Women',  href: '/products?gender=Women' },
+    { name: 'Men', href: '/products?gender=Men' },
+    { name: 'Women', href: '/products?gender=Women' },
     { name: 'Unisex', href: '/products?gender=Unisex' },
 ];
 
@@ -38,12 +27,25 @@ export default function Navbar() {
     const [wishlistCount, setWishlistCount] = useState(0);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [categoriesOpen, setCategoriesOpen] = useState(false);
+    const [aiQuery, setAiQuery] = useState('');
+    const [aiSearching, setAiSearching] = useState(false);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [categories, setCategories] = useState([]);
 
-    // Refs used to detect clicks outside a dropdown so we can close it
     const userMenuRef = useRef(null);
     const categoriesRef = useRef(null);
+    const searchRef = useRef(null);
+    const searchInputRef = useRef(null);
 
     const isAdmin = userProfile?.role === 'admin';
+
+    // Fetch categories from DB so the dropdown reflects whatever admin has configured
+    useEffect(() => {
+        fetch('/api/categories')
+            .then(res => res.json())
+            .then(data => setCategories(Array.isArray(data) ? data : []))
+            .catch(() => {});
+    }, []);
 
     // Keep cart count badge in sync with localStorage
     useEffect(() => {
@@ -60,7 +62,7 @@ export default function Navbar() {
             .then(token => fetch('/api/wishlist', { headers: { Authorization: `Bearer ${token}` } }))
             .then(res => res.json())
             .then(data => setWishlistCount(Array.isArray(data) ? data.length : 0))
-            .catch(() => {});
+            .catch(() => { });
     }, [user]);
 
     useEffect(() => {
@@ -79,6 +81,9 @@ export default function Navbar() {
             if (categoriesRef.current && !categoriesRef.current.contains(e.target)) {
                 setCategoriesOpen(false);
             }
+            if (searchRef.current && !searchRef.current.contains(e.target)) {
+                setSearchOpen(false);
+            }
         }
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -90,18 +95,58 @@ export default function Navbar() {
         router.push('/');
     };
 
+    const handleAiSearch = async (e) => {
+        e.preventDefault();
+        const q = aiQuery.trim();
+        if (!q) return;
+
+        setAiSearching(true);
+        try {
+            const res = await fetch('/api/ai/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: q }),
+            });
+            const { filters } = await res.json();
+
+            // Build URL params from Gemini's parsed filters
+            const params = new URLSearchParams();
+            if (filters.category) params.set('category', filters.category);
+            if (filters.gender) params.set('gender', filters.gender);
+            if (filters.brand) params.set('brand', filters.brand);
+            if (filters.minPrice) params.set('minPrice', filters.minPrice);
+            if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
+            if (filters.size) params.set('size', filters.size);
+            if (filters.condition) params.set('condition', filters.condition);
+            if (filters.fit) params.set('fit', filters.fit);
+            if (filters.wash) params.set('wash', filters.wash);
+            if (filters.onSale) params.set('onSale', filters.onSale);
+            if (filters.sortBy) params.set('sortBy', filters.sortBy);
+            if (filters.search) params.set('search', filters.search);
+
+            router.push(`/products?${params.toString()}`);
+        } catch {
+            router.push(`/products?search=${encodeURIComponent(q)}`);
+        } finally {
+            setAiSearching(false);
+            setAiQuery('');
+            setSearchOpen(false);
+            setIsMobileMenuOpen(false);
+        }
+    };
+
     // Hide Navbar entirely on auth pages and admin pages
     if (pathname?.startsWith('/auth') || pathname?.startsWith('/admin')) return null;
 
     // Active state for each nav item — checks both pathname AND query params
     // so that "Shop All" doesn't stay highlighted when a category or sale filter is active
     const onProductsPage = pathname === '/products';
-    const hasCategory    = !!searchParams.get('category') || !!searchParams.get('gender');
-    const isSaleActive   = searchParams.get('onSale') === 'true';
+    const hasCategory = !!searchParams.get('category') || !!searchParams.get('gender');
+    const isSaleActive = searchParams.get('onSale') === 'true';
 
-    const shopAllActive   = onProductsPage && !hasCategory && !isSaleActive;
+    const shopAllActive = onProductsPage && !hasCategory && !isSaleActive;
     const categoriesActive = onProductsPage && hasCategory;
-    const saleActive       = onProductsPage && isSaleActive;
+    const saleActive = onProductsPage && isSaleActive;
 
     return (
         <header className="sticky top-0 z-50 w-full bg-white border-b border-slate-200/80 shadow-sm backdrop-blur-md bg-white/90">
@@ -153,8 +198,8 @@ export default function Navbar() {
 
                                     {/* Category links */}
                                     <p className="px-4 pb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Browse by Category</p>
-                                    {CATEGORIES.map(cat => (
-                                        <Link key={cat.name} href={cat.href}
+                                    {categories.map(cat => (
+                                        <Link key={cat.name} href={`/products?category=${cat.name}`}
                                             onClick={() => setCategoriesOpen(false)}
                                             className="block px-4 py-2 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
                                             {cat.name}
@@ -185,8 +230,44 @@ export default function Navbar() {
 
                     </nav>
 
-                    {/* RIGHT: Cart + User */}
-                    <div className="flex items-center gap-3 sm:gap-5">
+                    <div className="flex items-center gap-3 sm:gap-4">
+
+                        {/* AI Search — expandable icon */}
+                        <div className="relative hidden sm:flex items-center" ref={searchRef}>
+                            <button
+                                onClick={() => {
+                                    setSearchOpen(!searchOpen);
+                                    if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 150);
+                                }}
+                                className={`relative z-10 w-9 h-9 flex items-center justify-center rounded-full transition-all duration-300 ${searchOpen
+                                        ? 'bg-indigo-100 text-indigo-600'
+                                        : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-100'
+                                    }`}
+                            >
+                                {aiSearching ? <Loader2 className="w-[18px] h-[18px] animate-spin" /> : <Sparkles className="w-[18px] h-[18px]" />}
+                            </button>
+
+                            <form
+                                onSubmit={handleAiSearch}
+                                className={`absolute right-0 top-1/2 -translate-y-1/2 flex items-center transition-all duration-300 ease-out origin-right ${searchOpen
+                                        ? 'w-72 opacity-100 pointer-events-auto'
+                                        : 'w-0 opacity-0 pointer-events-none'
+                                    }`}
+                            >
+                                <input
+                                    ref={searchInputRef}
+                                    type="text"
+                                    value={aiQuery}
+                                    onChange={(e) => setAiQuery(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Escape' && setSearchOpen(false)}
+                                    placeholder={`Try "mens jeans under R500"...`}
+                                    className="w-full pl-11 pr-10 h-9 text-xs rounded-full bg-white border border-indigo-200 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 shadow-lg shadow-indigo-500/10"
+                                />
+                                <button type="submit" disabled={aiSearching} className="absolute right-3 text-slate-400 hover:text-indigo-600 transition-colors">
+                                    <Search className="w-3.5 h-3.5" />
+                                </button>
+                            </form>
+                        </div>
 
                         {/* Wishlist heart — only shown when logged in, links to saved items */}
                         {user && (
@@ -300,6 +381,22 @@ export default function Navbar() {
             {/* MOBILE MENU */}
             {isMobileMenuOpen && (
                 <div className="md:hidden absolute top-20 left-0 w-full h-[calc(100vh-80px)] bg-white border-t border-slate-100 overflow-y-auto flex flex-col pt-6 px-6 z-40">
+
+                    {/* Mobile AI Search */}
+                    <form onSubmit={handleAiSearch} className="relative flex items-center mb-6">
+                        <Sparkles className="w-4 h-4 text-indigo-400 absolute left-4 pointer-events-none" />
+                        <input
+                            type="text"
+                            value={aiQuery}
+                            onChange={(e) => setAiQuery(e.target.value)}
+                            placeholder='AI Search... e.g. "relaxed fit, size 32"'
+                            className="w-full pl-11 pr-11 h-12 text-sm rounded-xl bg-slate-50 border border-slate-200 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
+                        />
+                        <button type="submit" disabled={aiSearching} className="absolute right-4 text-slate-400 hover:text-indigo-600 transition-colors">
+                            {aiSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                        </button>
+                    </form>
+
                     <nav className="flex flex-col gap-1">
                         <Link href="/" onClick={() => setIsMobileMenuOpen(false)}
                             className="text-lg font-bold text-slate-900 py-3 hover:text-indigo-600 transition-colors border-b border-slate-50">
@@ -314,8 +411,8 @@ export default function Navbar() {
                         <div className="py-3 border-b border-slate-50">
                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Categories</p>
                             <div className="grid grid-cols-2 gap-2">
-                                {CATEGORIES.map(cat => (
-                                    <Link key={cat.name} href={cat.href}
+                                {categories.map(cat => (
+                                    <Link key={cat.name} href={`/products?category=${cat.name}`}
                                         onClick={() => setIsMobileMenuOpen(false)}
                                         className="text-sm font-medium text-slate-700 hover:text-indigo-600 py-1 transition-colors">
                                         {cat.name}

@@ -18,7 +18,7 @@ export default function AdminUsersPage() {
         user.getIdToken().then(token =>
             fetch('/api/users', { headers: { Authorization: `Bearer ${token}` } })
         ).then(res => res.json()).then(data => {
-            setUsers(data.users || []);
+            setUsers(Array.isArray(data) ? data : []);
             setLoading(false);
         });
     }, [user]);

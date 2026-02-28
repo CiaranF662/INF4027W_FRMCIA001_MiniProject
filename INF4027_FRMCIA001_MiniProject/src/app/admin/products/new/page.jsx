@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Plus, X } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, X, Sparkles } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +55,7 @@ export default function AddProductPage() {
     const [error, setError] = useState('');
     const [tagInput, setTagInput] = useState('');
     const [imageInput, setImageInput] = useState('');
+    const [generatingDesc, setGeneratingDesc] = useState(false);
 
     const [form, setForm] = useState({
         title: '', description: '', brand: '', category: '', size: '',
@@ -146,6 +147,28 @@ export default function AddProductPage() {
                             rows={3} placeholder="Describe the item — any notable features, history, or flaws..."
                             className="w-full rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 resize-none"
                         />
+                        <button
+                            type="button"
+                            disabled={generatingDesc || !form.title || !form.brand}
+                            onClick={async () => {
+                                setGeneratingDesc(true);
+                                try {
+                                    const token = await user.getIdToken();
+                                    const res = await fetch('/api/ai/generate-description', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                        body: JSON.stringify(form),
+                                    });
+                                    const data = await res.json();
+                                    if (data.description) setForm(prev => ({ ...prev, description: data.description }));
+                                } catch { /* silent */ }
+                                setGeneratingDesc(false);
+                            }}
+                            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            {generatingDesc ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                            {generatingDesc ? 'Generating...' : 'Generate with AI'}
+                        </button>
                     </FormField>
                 </div>
 

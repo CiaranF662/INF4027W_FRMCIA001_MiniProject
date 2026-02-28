@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Loader2, TrendingUp, Wallet, ArrowUpRight, Receipt } from 'lucide-react';
+import { Loader2, TrendingUp, Wallet, ArrowUpRight, Receipt, Sparkles } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import {
     ResponsiveContainer, LineChart, Line, BarChart, Bar,
@@ -29,13 +29,32 @@ export default function FinancialReportPage() {
     const { user } = useAuth();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [insights, setInsights] = useState('');
+    const [insightsLoading, setInsightsLoading] = useState(false);
 
     useEffect(() => {
         if (!user) return;
-        user.getIdToken().then(token =>
+        user.getIdToken().then(token => {
             fetch('/api/reports/financial', { headers: { Authorization: `Bearer ${token}` } })
-        ).then(res => res.json()).then(d => { setData(d); setLoading(false); });
+                .then(res => res.json())
+                .then(d => { setData(d); setLoading(false); });
+        });
     }, [user]);
+
+    const fetchInsights = async () => {
+        setInsightsLoading(true);
+        try {
+            const token = await user.getIdToken();
+            const res = await fetch('/api/ai/insights?type=financial', { headers: { Authorization: `Bearer ${token}` } });
+            const d = await res.json();
+            if (d.insights) setInsights(d.insights);
+            else setInsights('Could not generate insights. Please try again.');
+        } catch {
+            setInsights('Failed to generate insights. You may have hit a rate limit — try again in a minute.');
+        } finally {
+            setInsightsLoading(false);
+        }
+    };
 
     if (loading) return <div className="flex items-center justify-center py-24"><Loader2 className="w-8 h-8 animate-spin text-indigo-400" /></div>;
     if (!data) return null;
@@ -53,6 +72,35 @@ export default function FinancialReportPage() {
                 <StatCard label="Total Cost" value={`R ${data.totalCost?.toLocaleString('en-ZA')}`} sub="Cost of goods sold" icon={Receipt} colour="bg-rose-500" />
                 <StatCard label="Gross Profit" value={`R ${data.totalProfit?.toLocaleString('en-ZA')}`} sub={data.totalRevenue > 0 ? `${Math.round((data.totalProfit / data.totalRevenue) * 100)}% margin` : ''} icon={Wallet} colour="bg-emerald-500" />
                 <StatCard label="Avg. Order Value" value={`R ${data.averageOrderValue}`} sub="Per completed order" icon={ArrowUpRight} colour="bg-amber-500" />
+            </div>
+
+            {/* AI Insights — on-demand */}
+            <div className="bg-gradient-to-br from-indigo-50 to-white rounded-2xl border border-indigo-200/60 shadow-sm p-6">
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-indigo-500" />
+                        <h3 className="text-sm font-bold text-indigo-700 uppercase tracking-wider">AI Insights</h3>
+                    </div>
+                    {!insights && !insightsLoading && (
+                        <button
+                            onClick={fetchInsights}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 bg-white hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors"
+                        >
+                            <Sparkles className="w-3 h-3" /> Generate Insights
+                        </button>
+                    )}
+                </div>
+                {insightsLoading ? (
+                    <div className="space-y-2.5 animate-pulse">
+                        <div className="h-3 bg-indigo-100 rounded w-full" />
+                        <div className="h-3 bg-indigo-100 rounded w-5/6" />
+                        <div className="h-3 bg-indigo-100 rounded w-4/6" />
+                    </div>
+                ) : insights ? (
+                    <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{insights}</div>
+                ) : (
+                    <p className="text-sm text-slate-400">Click "Generate Insights" to analyze your financial data with AI.</p>
+                )}
             </div>
 
             {/* Revenue Over Time — Line Chart */}

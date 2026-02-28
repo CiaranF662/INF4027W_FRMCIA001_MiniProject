@@ -26,7 +26,7 @@ export default function AdminOrdersPage() {
         user.getIdToken().then(token =>
             fetch('/api/orders', { headers: { Authorization: `Bearer ${token}` } })
         ).then(res => res.json()).then(data => {
-            setOrders(data.orders || []);
+            setOrders(Array.isArray(data) ? data : []);
             setLoading(false);
         });
     }, [user]);
