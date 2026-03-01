@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
+import { formatPrice } from '@/lib/utils';
 
 export default function CartItem({ item, onRemove }) {
     return (
@@ -34,7 +35,7 @@ export default function CartItem({ item, onRemove }) {
 
                     {/* Price (Desktop positioning) */}
                     <div className="hidden sm:block text-right shrink-0">
-                        <span className="text-lg font-bold text-slate-900 tracking-tight">R{item.price}</span>
+                        <span className="text-lg font-bold text-slate-900 tracking-tight">{formatPrice(item.price)}</span>
                     </div>
                 </div>
 
@@ -53,7 +54,7 @@ export default function CartItem({ item, onRemove }) {
                     )}
 
                     {/* Mobile positioning for Price */}
-                    <span className="sm:hidden text-lg font-bold text-slate-900 tracking-tight">R{item.price}</span>
+                    <span className="sm:hidden text-lg font-bold text-slate-900 tracking-tight">{formatPrice(item.price)}</span>
                 </div>
             </div>
         </div>

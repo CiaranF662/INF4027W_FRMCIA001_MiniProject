@@ -6,7 +6,7 @@ import { Heart, ShoppingCart, ChevronRight, Share2, Loader2, CheckCircle } from 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { getConditionStyles } from '@/lib/utils';
+import { getConditionStyles, formatPrice } from '@/lib/utils';
 import { addToCart } from '@/lib/cart';
 import { trackRecentlyViewed } from '@/lib/recentlyViewed';
 import { useAuth } from '@/lib/auth-context';
@@ -253,9 +253,9 @@ export default function ProductDetailPage({ params }) {
                                     className="rv-fade-up flex items-center gap-3 flex-wrap"
                                     style={{ animationDelay: '120ms' }}
                                 >
-                                    <span className="text-2xl font-black tracking-tight text-slate-900">R{product.price}</span>
+                                    <span className="text-2xl font-black tracking-tight text-slate-900">{formatPrice(product.price)}</span>
                                     {product.originalPrice > product.price && (
-                                        <span className="text-sm font-medium text-slate-400 line-through">R{product.originalPrice}</span>
+                                        <span className="text-sm font-medium text-slate-400 line-through">{formatPrice(product.originalPrice)}</span>
                                     )}
                                     {discount > 0 && (
                                         <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full tracking-wide">

@@ -6,7 +6,7 @@ import { Heart, Loader2, Trash2, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getConditionStyles } from '@/lib/utils';
+import { getConditionStyles, formatPrice } from '@/lib/utils';
 import { addToCart } from '@/lib/cart';
 
 function WishlistCard({ product, onRemove }) {
@@ -72,9 +72,9 @@ function WishlistCard({ product, onRemove }) {
                     {product.title}
                 </Link>
                 <div className="flex items-center gap-2 pt-3 border-t border-slate-100 mb-4">
-                    <span className="text-base font-bold text-slate-900">R{product.price}</span>
+                    <span className="text-base font-bold text-slate-900">{formatPrice(product.price)}</span>
                     {product.originalPrice > product.price && (
-                        <span className="text-sm text-slate-400 line-through">R{product.originalPrice}</span>
+                        <span className="text-sm text-slate-400 line-through">{formatPrice(product.originalPrice)}</span>
                     )}
                 </div>
 

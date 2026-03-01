@@ -176,16 +176,27 @@ class ProductService extends FirestoreService {
     }
 
     /**
+     * GET AVAILABLE PRODUCTS — shared helper used by getFeatured, getLatest, and getBestDeals.
+     *
+     * All three homepage sections need the same base query: all available products.
+     * Instead of each method making its own identical Firestore read, they all call
+     * this once and then filter/sort the result in memory.
+     *
+     * @returns {Array} all products with status === 'available'
+     */
+    async _getAvailableProducts() {
+        const snapshot = await this.collection.where('status', '==', 'available').get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    /**
      * GET FEATURED — returns a small selection of products for the homepage.
      * Picks the 6 most recently listed available products.
      * @returns {Array} up to 6 products
      */
     async getFeatured() {
-        // Filter in Firestore, sort and limit in JavaScript — avoids needing a composite index
-        const snapshot = await this.collection.where('status', '==', 'available').get();
-
-        return snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
+        const products = await this._getAvailableProducts();
+        return products
             .sort((a, b) => {
                 const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
                 const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
@@ -201,11 +212,8 @@ class ProductService extends FirestoreService {
      * @returns {Array} the newest products
      */
     async getLatest(limit = 8) {
-        // Filter in Firestore, sort and limit in JavaScript — avoids needing a composite index
-        const snapshot = await this.collection.where('status', '==', 'available').get();
-
-        return snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
+        const products = await this._getAvailableProducts();
+        return products
             .sort((a, b) => {
                 const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt);
                 const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt);
@@ -221,16 +229,7 @@ class ProductService extends FirestoreService {
      * @returns {Array} products with the biggest savings first
      */
     async getBestDeals(limit = 8) {
-        const snapshot = await this.collection
-            .where('status', '==', 'available')
-            .get();
-
-        const products = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
-
-        // Calculate discount percentage for each product and sort
+        const products = await this._getAvailableProducts();
         return products
             .map(p => ({
                 ...p,

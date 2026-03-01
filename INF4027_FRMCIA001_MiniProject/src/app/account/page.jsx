@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ShoppingBag, Heart, MapPin, ArrowRight, Package } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Badge } from "@/components/ui/badge";
+import { formatPrice } from '@/lib/utils';
 
 export default function AccountOverviewPage() {
     const { user, userProfile } = useAuth();
@@ -118,7 +119,7 @@ export default function AccountOverviewPage() {
                                     <p className="text-xs text-slate-500 mt-0.5">{formatDate(order.createdAt)}</p>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <span className="text-sm font-bold text-slate-900">R{order.totalAmount}</span>
+                                    <span className="text-sm font-bold text-slate-900">{formatPrice(order.totalAmount)}</span>
                                     <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase">
                                         {order.status}
                                     </Badge>

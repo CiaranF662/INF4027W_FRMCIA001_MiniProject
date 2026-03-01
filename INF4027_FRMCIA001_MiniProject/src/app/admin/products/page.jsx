@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getConditionStyles } from '@/lib/utils';
+import { getConditionStyles, formatPrice } from '@/lib/utils';
 
 const STATUS_TABS = [
     { value: 'all', label: 'All' },
@@ -276,7 +276,7 @@ export default function AdminProductsPage() {
                                                 {product.condition}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="font-semibold text-slate-900">R{product.price}</TableCell>
+                                        <TableCell className="font-semibold text-slate-900">{formatPrice(product.price)}</TableCell>
                                         <TableCell>
                                             <Badge
                                                 variant={product.status === 'available' ? 'outline' : 'secondary'}

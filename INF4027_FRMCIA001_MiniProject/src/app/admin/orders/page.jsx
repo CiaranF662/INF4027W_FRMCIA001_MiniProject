@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, Search, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { formatPrice } from '@/lib/utils';
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -193,7 +194,7 @@ export default function AdminOrdersPage() {
                                                 <p className="text-xs text-slate-500">{order.buyerEmail}</p>
                                             </TableCell>
                                             <TableCell className="text-slate-600">{order.items?.length || 0}</TableCell>
-                                            <TableCell className="font-bold text-slate-900">R{order.totalAmount}</TableCell>
+                                            <TableCell className="font-bold text-slate-900">{formatPrice(order.totalAmount)}</TableCell>
                                             <TableCell>
                                                 <Badge variant="outline" className="text-xs font-medium border-slate-200 text-slate-600">
                                                     {PAYMENT_LABELS[order.paymentMethod] || order.paymentMethod}
@@ -232,7 +233,7 @@ export default function AdminOrdersPage() {
                                                                                 {item.title}
                                                                             </p>
                                                                             <p className="text-[11px] text-slate-400 mt-0.5">
-                                                                                {item.brand} · <span className="font-semibold text-slate-600">R{item.price}</span>
+                                                                                {item.brand} · <span className="font-semibold text-slate-600">{formatPrice(item.price)}</span>
                                                                             </p>
                                                                         </div>
                                                                     </div>

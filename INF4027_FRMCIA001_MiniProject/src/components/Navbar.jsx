@@ -3,12 +3,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { ShoppingBag, Heart, Search, Menu, X, User, LogOut, LayoutDashboard, Package, ChevronDown, Sparkles, Loader2 } from 'lucide-react';
+import { ShoppingBag, Heart, Menu, X, User, LogOut, LayoutDashboard, Package, ChevronDown } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useAuth } from '@/lib/auth-context';
 import { getCartCount } from '@/lib/cart';
 import { Badge } from "@/components/ui/badge";
+import AiSearchBar from '@/components/AiSearchBar';
+import Logo from '@/components/Logo';
 
 const GENDERS = [
     { name: 'Men', href: '/products?gender=Men' },
@@ -27,15 +29,10 @@ export default function Navbar() {
     const [wishlistCount, setWishlistCount] = useState(0);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [categoriesOpen, setCategoriesOpen] = useState(false);
-    const [aiQuery, setAiQuery] = useState('');
-    const [aiSearching, setAiSearching] = useState(false);
-    const [searchOpen, setSearchOpen] = useState(false);
     const [categories, setCategories] = useState([]);
 
     const userMenuRef = useRef(null);
     const categoriesRef = useRef(null);
-    const searchRef = useRef(null);
-    const searchInputRef = useRef(null);
 
     const isAdmin = userProfile?.role === 'admin';
 
@@ -81,9 +78,6 @@ export default function Navbar() {
             if (categoriesRef.current && !categoriesRef.current.contains(e.target)) {
                 setCategoriesOpen(false);
             }
-            if (searchRef.current && !searchRef.current.contains(e.target)) {
-                setSearchOpen(false);
-            }
         }
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -93,46 +87,6 @@ export default function Navbar() {
         await signOut(auth);
         setUserMenuOpen(false);
         router.push('/');
-    };
-
-    const handleAiSearch = async (e) => {
-        e.preventDefault();
-        const q = aiQuery.trim();
-        if (!q) return;
-
-        setAiSearching(true);
-        try {
-            const res = await fetch('/api/ai/search', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: q }),
-            });
-            const { filters } = await res.json();
-
-            // Build URL params from Gemini's parsed filters
-            const params = new URLSearchParams();
-            if (filters.category) params.set('category', filters.category);
-            if (filters.gender) params.set('gender', filters.gender);
-            if (filters.brand) params.set('brand', filters.brand);
-            if (filters.minPrice) params.set('minPrice', filters.minPrice);
-            if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
-            if (filters.size) params.set('size', filters.size);
-            if (filters.condition) params.set('condition', filters.condition);
-            if (filters.fit) params.set('fit', filters.fit);
-            if (filters.wash) params.set('wash', filters.wash);
-            if (filters.onSale) params.set('onSale', filters.onSale);
-            if (filters.sortBy) params.set('sortBy', filters.sortBy);
-            if (filters.search) params.set('search', filters.search);
-
-            router.push(`/products?${params.toString()}`);
-        } catch {
-            router.push(`/products?search=${encodeURIComponent(q)}`);
-        } finally {
-            setAiSearching(false);
-            setAiQuery('');
-            setSearchOpen(false);
-            setIsMobileMenuOpen(false);
-        }
     };
 
     // Hide Navbar entirely on auth pages and admin pages
@@ -157,41 +111,7 @@ export default function Navbar() {
 
                     {/* LEFT: Logo */}
                     <Link href="/" className="flex items-center gap-3 group">
-                        {/* DR monogram — clean geometric letterform outlines, no background shape */}
-                        <svg
-                            width="44" height="30" viewBox="0 0 44 30" fill="none"
-                            className="shrink-0 transition-transform duration-200 group-hover:scale-105"
-                            aria-hidden="true"
-                        >
-                            {/* D — vertical bar + curved arc */}
-                            <path
-                                d="M 2 2 L 2 28 M 2 2 L 8 2 C 20 2 23 8 23 15 C 23 22 20 28 8 28 L 2 28"
-                                stroke="#4F46E5" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"
-                            />
-                            {/* R — vertical bar + bowl + diagonal leg */}
-                            <path
-                                d="M 29 2 L 29 28 M 29 2 L 35 2 C 42 2 42 12 35 12 L 29 12 M 35 12 L 42 28"
-                                stroke="#4F46E5" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
-                            />
-                        </svg>
-
-                        {/* Stacked two-line wordmark */}
-                        <div className="hidden sm:flex flex-col leading-none" style={{ gap: '3px' }}>
-                            <span style={{
-                                fontSize: '10px', fontWeight: 700, letterSpacing: '0.26em',
-                                color: '#4F46E5', textTransform: 'uppercase',
-                                fontFamily: "'Barlow', sans-serif",
-                            }}>
-                                Denim
-                            </span>
-                            <span style={{
-                                fontSize: '19px', fontWeight: 800, letterSpacing: '-0.02em',
-                                color: '#111827', lineHeight: 1,
-                                fontFamily: "'Barlow', sans-serif",
-                            }}>
-                                Revibe
-                            </span>
-                        </div>
+                        <Logo hideWordmarkOnMobile />
                     </Link>
 
                     {/* CENTER: Desktop Navigation */}
@@ -265,42 +185,8 @@ export default function Navbar() {
 
                     <div className="flex items-center gap-3 sm:gap-4">
 
-                        {/* AI Search — expandable icon */}
-                        <div className="relative hidden sm:flex items-center" ref={searchRef}>
-                            <button
-                                onClick={() => {
-                                    setSearchOpen(!searchOpen);
-                                    if (!searchOpen) setTimeout(() => searchInputRef.current?.focus(), 150);
-                                }}
-                                className={`relative z-10 w-9 h-9 flex items-center justify-center rounded-full transition-all duration-300 ${searchOpen
-                                        ? 'bg-indigo-100 text-indigo-600'
-                                        : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-100'
-                                    }`}
-                            >
-                                {aiSearching ? <Loader2 className="w-[18px] h-[18px] animate-spin" /> : <Sparkles className="w-[18px] h-[18px]" />}
-                            </button>
-
-                            <form
-                                onSubmit={handleAiSearch}
-                                className={`absolute right-0 top-1/2 -translate-y-1/2 flex items-center transition-all duration-300 ease-out origin-right ${searchOpen
-                                        ? 'w-72 opacity-100 pointer-events-auto'
-                                        : 'w-0 opacity-0 pointer-events-none'
-                                    }`}
-                            >
-                                <input
-                                    ref={searchInputRef}
-                                    type="text"
-                                    value={aiQuery}
-                                    onChange={(e) => setAiQuery(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Escape' && setSearchOpen(false)}
-                                    placeholder={`Try "mens jeans under R500"...`}
-                                    className="w-full pl-11 pr-10 h-9 text-xs rounded-full bg-white border border-indigo-200 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 shadow-lg shadow-indigo-500/10"
-                                />
-                                <button type="submit" disabled={aiSearching} className="absolute right-3 text-slate-400 hover:text-indigo-600 transition-colors">
-                                    <Search className="w-3.5 h-3.5" />
-                                </button>
-                            </form>
-                        </div>
+                        {/* AI Search — expandable search bar */}
+                        <AiSearchBar />
 
                         {/* Wishlist heart — only shown when logged in, links to saved items */}
                         {user && (
@@ -416,19 +302,10 @@ export default function Navbar() {
                 <div className="md:hidden absolute top-20 left-0 w-full h-[calc(100vh-80px)] bg-white border-t border-slate-100 overflow-y-auto flex flex-col pt-6 px-6 z-40">
 
                     {/* Mobile AI Search */}
-                    <form onSubmit={handleAiSearch} className="relative flex items-center mb-6">
-                        <Sparkles className="w-4 h-4 text-indigo-400 absolute left-4 pointer-events-none" />
-                        <input
-                            type="text"
-                            value={aiQuery}
-                            onChange={(e) => setAiQuery(e.target.value)}
-                            placeholder='AI Search... e.g. "relaxed fit, size 32"'
-                            className="w-full pl-11 pr-11 h-12 text-sm rounded-xl bg-slate-50 border border-slate-200 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
-                        />
-                        <button type="submit" disabled={aiSearching} className="absolute right-4 text-slate-400 hover:text-indigo-600 transition-colors">
-                            {aiSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                        </button>
-                    </form>
+                    <AiSearchBar
+                        variant="mobile"
+                        onSearchComplete={() => setIsMobileMenuOpen(false)}
+                    />
 
                     <nav className="flex flex-col gap-1">
                         <Link href="/" onClick={() => setIsMobileMenuOpen(false)}

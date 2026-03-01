@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from '@/lib/auth-context';
+import { formatPrice } from '@/lib/utils';
 
 export default function AdminOverview() {
     const { user } = useAuth();
@@ -201,7 +202,7 @@ export default function AdminOverview() {
                                         <TableRow key={order.id} className="border-slate-100 hover:bg-slate-50/50">
                                             <TableCell className="text-slate-600 text-sm">{order.buyerEmail}</TableCell>
                                             <TableCell className="text-slate-600 text-sm">{order.items?.length ?? 0}</TableCell>
-                                            <TableCell className="font-bold text-slate-900 text-sm">R{order.totalAmount}</TableCell>
+                                            <TableCell className="font-bold text-slate-900 text-sm">{formatPrice(order.totalAmount)}</TableCell>
                                             <TableCell>
                                                 <Badge variant="outline" className="font-medium text-slate-600 bg-white text-xs shadow-none border-slate-200 py-0.5">
                                                     {formatMethod(order.paymentMethod)}
@@ -270,7 +271,7 @@ export default function AdminOverview() {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-xs font-semibold text-slate-800 truncate">{item.title}</p>
-                                                <p className="text-[10px] text-slate-400">{item.brand} · R{item.price}</p>
+                                                <p className="text-[10px] text-slate-400">{item.brand} · {formatPrice(item.price)}</p>
                                             </div>
                                             <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500 shrink-0 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">
                                                 <Eye className="w-3 h-3" /> {item.views ?? 0}

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Heart, ShoppingCart } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
-import { getConditionStyles } from '@/lib/utils';
+import { getConditionStyles, formatPrice, calculateDiscount } from '@/lib/utils';
 import { addToCart } from '@/lib/cart';
 import { useAuth } from '@/lib/auth-context';
 
@@ -47,9 +47,7 @@ export default function ProductCard({ item, isWishlisted = false }) {
         setTimeout(() => setAddedToCart(false), 2000);
     };
 
-    const discount = item.originalPrice > item.price
-        ? Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)
-        : (item.discount || 0);
+    const discount = calculateDiscount(item.originalPrice, item.price) || item.discount || 0;
 
     return (
         <Link href={`/products/${item.id}`} className="group flex flex-col bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 hover:border-indigo-200 transition-all duration-300">
@@ -137,9 +135,9 @@ export default function ProductCard({ item, isWishlisted = false }) {
                 {/* Price + Quick Add to Cart button */}
                 <div className="flex items-center justify-between mt-auto pt-3 border-t border-slate-100">
                     <div className="flex items-baseline gap-2">
-                        <span className="text-lg font-bold text-slate-900 tracking-tight">R{item.price}</span>
+                        <span className="text-lg font-bold text-slate-900 tracking-tight">{formatPrice(item.price)}</span>
                         {item.originalPrice > item.price && (
-                            <span className="text-xs font-medium text-slate-400 line-through">R{item.originalPrice}</span>
+                            <span className="text-xs font-medium text-slate-400 line-through">{formatPrice(item.originalPrice)}</span>
                         )}
                     </div>
 

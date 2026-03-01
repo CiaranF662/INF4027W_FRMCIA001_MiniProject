@@ -6,6 +6,7 @@
 
 import { NextResponse } from 'next/server';
 import orderService from '@/services/orderService';
+import productService from '@/services/productService';
 import { verifyAuth, verifyAdmin } from '@/lib/auth-helpers';
 
 /**
@@ -106,19 +107,17 @@ export async function POST(request) {
 
         // Step 6: Confirm every product is still available in Firestore
         // This prevents buying something that sold while it was in your cart
-        const { adminDb } = await import('@/lib/firebaseAdmin');
-
         for (const item of data.items) {
-            const productDoc = await adminDb.collection('products').doc(item.productId).get();
+            const product = await productService.getById(item.productId);
 
-            if (!productDoc.exists) {
+            if (!product) {
                 return NextResponse.json(
                     { error: `Product "${item.title}" no longer exists` },
                     { status: 400 }
                 );
             }
 
-            if (productDoc.data().status !== 'available') {
+            if (product.status !== 'available') {
                 return NextResponse.json(
                     { error: `"${item.title}" has already been sold` },
                     { status: 400 }

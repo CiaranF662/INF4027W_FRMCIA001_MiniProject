@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from '@/lib/auth-context';
 import { getCart, clearCart } from '@/lib/cart';
+import { formatPrice } from '@/lib/utils';
 
 const PAYMENT_METHODS = [
     { id: 'card', label: 'Credit / Debit Card', icon: CreditCard, description: 'Visa, Mastercard, Amex' },
@@ -17,7 +18,7 @@ const PAYMENT_METHODS = [
 
 export default function CheckoutPage() {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [cartItems, setCartItems] = useState([]);
     const [paymentMethod, setPaymentMethod] = useState('card');
     const [loading, setLoading] = useState(false);
@@ -26,21 +27,13 @@ export default function CheckoutPage() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        // Redirect to login if not authenticated
-        if (user === null) {
-            // AuthProvider sets user to null when confirmed not logged in
-            // We wait briefly because AuthProvider might still be loading
-        }
         setCartItems(getCart());
-    }, [user]);
+    }, []);
 
-    // Redirect to login if user is definitively not logged in
+    // Redirect to login once AuthProvider has resolved and there is no user
     useEffect(() => {
-        const timer = setTimeout(() => {
-            if (!user) router.push('/auth/login');
-        }, 500);
-        return () => clearTimeout(timer);
-    }, [user, router]);
+        if (!authLoading && !user) router.push('/auth/login');
+    }, [user, authLoading, router]);
 
     const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0);
 
@@ -197,7 +190,7 @@ export default function CheckoutPage() {
                                             <p className="text-sm font-semibold text-slate-900 truncate">{item.title}</p>
                                             <p className="text-xs text-slate-500">{item.brand} · Size {item.size}</p>
                                         </div>
-                                        <span className="text-sm font-bold text-slate-900 shrink-0">R{item.price}</span>
+                                        <span className="text-sm font-bold text-slate-900 shrink-0">{formatPrice(item.price)}</span>
                                     </div>
                                 ))}
                             </div>
@@ -212,7 +205,7 @@ export default function CheckoutPage() {
                             <div className="space-y-3 text-sm">
                                 <div className="flex justify-between">
                                     <span className="text-slate-500">Subtotal ({cartItems.length} items)</span>
-                                    <span className="font-medium text-slate-900">R{subtotal}</span>
+                                    <span className="font-medium text-slate-900">{formatPrice(subtotal)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-slate-500">Shipping</span>
@@ -224,7 +217,7 @@ export default function CheckoutPage() {
 
                             <div className="flex justify-between items-center mb-6">
                                 <span className="text-base font-bold text-slate-900">Total</span>
-                                <span className="text-2xl font-black text-slate-900">R{subtotal}</span>
+                                <span className="text-2xl font-black text-slate-900">{formatPrice(subtotal)}</span>
                             </div>
 
                             {error && (
@@ -243,7 +236,7 @@ export default function CheckoutPage() {
                                 ) : (
                                     <>
                                         <Lock className="w-4 h-4" />
-                                        Confirm Order · R{subtotal}
+                                        Confirm Order · {formatPrice(subtotal)}
                                     </>
                                 )}
                             </Button>

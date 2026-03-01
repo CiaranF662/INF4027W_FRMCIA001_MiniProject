@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Package, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Badge } from "@/components/ui/badge";
+import { formatPrice } from '@/lib/utils';
 
 function OrderCard({ order }) {
     const [expanded, setExpanded] = useState(false);
@@ -38,7 +39,7 @@ function OrderCard({ order }) {
 
                 <div className="flex items-center gap-4">
                     <div className="text-right">
-                        <p className="text-xl font-black text-slate-900">R{order.totalAmount}</p>
+                        <p className="text-xl font-black text-slate-900">{formatPrice(order.totalAmount)}</p>
                         <p className="text-xs text-slate-400">{PAYMENT_LABELS[order.paymentMethod] || order.paymentMethod}</p>
                     </div>
                     <button
@@ -88,7 +89,7 @@ function OrderCard({ order }) {
                                     </Link>
                                     <p className="text-xs text-slate-500 mt-0.5">{item.brand}</p>
                                 </div>
-                                <span className="text-sm font-bold text-slate-900 shrink-0">R{item.price}</span>
+                                <span className="text-sm font-bold text-slate-900 shrink-0">{formatPrice(item.price)}</span>
                             </div>
                         ))}
                     </div>

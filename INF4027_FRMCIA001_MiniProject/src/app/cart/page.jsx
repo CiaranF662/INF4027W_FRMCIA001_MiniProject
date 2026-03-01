@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import CartItem from '@/components/CartItem';
 import { getCart, removeFromCart } from '@/lib/cart';
+import { formatPrice } from '@/lib/utils';
 
 export default function CartPage() {
     const [cartItems, setCartItems] = useState([]);
@@ -80,7 +81,7 @@ export default function CartPage() {
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-slate-500">Subtotal ({cartItems.length} items)</span>
-                                    <span className="font-medium text-slate-900">R{subtotal}</span>
+                                    <span className="font-medium text-slate-900">{formatPrice(subtotal)}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-slate-500">Shipping</span>
@@ -89,7 +90,7 @@ export default function CartPage() {
                                 <Separator className="my-2 bg-slate-100" />
                                 <div className="flex justify-between items-center py-2">
                                     <span className="text-base font-bold text-slate-900">Total</span>
-                                    <span className="text-2xl font-black text-slate-900 tracking-tight">R{subtotal}</span>
+                                    <span className="text-2xl font-black text-slate-900 tracking-tight">{formatPrice(subtotal)}</span>
                                 </div>
                             </div>
 
