@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# INF4027W_FRMCIA001_MiniProject - Ciaran Formby
+A full stack E-commerce platform for second-hand Denim products. Denim is a very durable material that has multiple lifespans. Wasting it is bad for the envireonment and consumerism creates demand for new denim products to be produced. Here you can buy pre-owned denim at reduced prices reducing waste and slowing demand on new production.
 
-## Getting Started
+URL: https://inf-4027-w-frmcia-001-mini-project.vercel.app
 
-First, run the development server:
+Admin login:
+  Email:    admin@revibe.co.za
+  Password: ReVibe@Admin2026
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1.) Type npm install in terminal to install dependencies
+2.)Create a .env.local file with the following variables:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+# Firebase Client SDK (public — exposed to the browser)
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project-id.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=000000000000
+NEXT_PUBLIC_FIREBASE_APP_ID=1:000000000000:web:your_app_id
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+# Firebase Admin SDK (server-side only — never exposed to browser)
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project-id.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nyour_private_key_here\n-----END PRIVATE KEY-----\n"
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Google Gemini API (server-side only)
+GEMINI_API_KEY=your_gemini_api_key
 
-## Learn More
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3.) Type "npm run dev" in terminal to run the project
