@@ -9,7 +9,20 @@ import { storage } from '@/lib/firebase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatPrice, calculateDiscount } from '@/lib/utils';
+import ProductPreviewModal from '@/components/admin/ProductPreviewModal';
+
+const LETTER_SIZES = [
+    { value: 'XXS', equiv: '24' },
+    { value: 'XS',  equiv: '26-27' },
+    { value: 'S',   equiv: '28-29' },
+    { value: 'M',   equiv: '30-31' },
+    { value: 'L',   equiv: '32-33' },
+    { value: 'XL',  equiv: '34-35' },
+    { value: 'XXL', equiv: '36-38' },
+];
+const WAIST_SIZES = ['24','25','26','27','28','29','30','31','32','33','34','35','36','38','40','42'];
 
 // All attribute options except category — that comes from the database
 const FIELD_OPTIONS = {
@@ -19,15 +32,17 @@ const FIELD_OPTIONS = {
     rise: ["Low Rise", "Mid Rise", "High Rise"],
     wash: ["Raw/Unwashed", "Dark", "Medium", "Light", "Acid", "Distressed", "Stone Wash"],
     stretch: ["No Stretch", "Slight Stretch", "Stretch", "Super Stretch"],
-    colour: ["Indigo", "Dark Wash", "Medium Wash", "Light Wash", "Black", "White", "Grey", "Raw", "Acid Wash"],
+    colour: ["Blue", "Dark Indigo", "Black", "White", "Grey", "Green", "Olive", "Beige / Tan", "Brown", "Pink", "Red", "Burgundy", "Purple", "Orange", "Yellow", "Multi / Pattern"],
     era: ["Vintage 70s", "Vintage 80s", "Vintage 90s", "Y2K", "Modern"],
     style: ["Vintage", "Streetwear", "Classic", "Workwear", "Designer", "Casual"],
 };
 
-// Fields the AI image analyser can fill
-const AI_FIELDS = ['condition', 'colour', 'fit', 'rise', 'wash', 'era', 'description'];
+// String fields the AI image analyser can fill directly
+const AI_FIELDS = ['condition', 'colour', 'fit', 'rise', 'wash', 'era', 'description', 'category', 'gender', 'style'];
 
-function FormField({ label, required, children, isAiFilled }) {
+const REQUIRED_FIELDS = ['title', 'brand', 'category', 'condition', 'size', 'gender', 'price'];
+
+function FormField({ label, required, children, isAiFilled, error }) {
     return (
         <div className="space-y-1.5">
             <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
@@ -36,16 +51,19 @@ function FormField({ label, required, children, isAiFilled }) {
                 {isAiFilled && <Sparkles className="w-3 h-3 text-indigo-400" />}
             </Label>
             {children}
+            {error && <p className="text-xs text-rose-500">{error}</p>}
         </div>
     );
 }
 
-function SelectField({ label, required, value, onChange, options, placeholder, isAiFilled }) {
+function SelectField({ label, required, value, onChange, options, placeholder, isAiFilled, error }) {
     return (
-        <FormField label={label} required={required} isAiFilled={isAiFilled}>
+        <FormField label={label} required={required} isAiFilled={isAiFilled} error={error}>
             <Select value={value} onValueChange={onChange}>
-                <SelectTrigger className={`h-10 border-slate-200 focus:ring-indigo-600 transition-colors
-                    ${isAiFilled ? 'bg-indigo-50/60 border-indigo-200' : 'bg-slate-50'}`}>
+                <SelectTrigger className={`h-10 focus:ring-indigo-600 transition-colors
+                    ${isAiFilled ? 'bg-indigo-50/60 border-indigo-200'
+                    : error ? 'border-rose-400 bg-rose-50/30'
+                    : 'bg-slate-50 border-slate-200'}`}>
                     <SelectValue placeholder={placeholder || `Select ${label}`} />
                 </SelectTrigger>
                 <SelectContent>
@@ -56,6 +74,7 @@ function SelectField({ label, required, value, onChange, options, placeholder, i
     );
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function AddProductPage() {
     const router = useRouter();
     const { user } = useAuth();
@@ -68,6 +87,8 @@ export default function AddProductPage() {
     const [imageInput, setImageInput] = useState('');
     const [dragActive, setDragActive] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
+    const [formErrors, setFormErrors] = useState({});
 
     // Categories loaded from the database
     const [categories, setCategories] = useState([]);
@@ -98,28 +119,37 @@ export default function AddProductPage() {
     const clearAiField = (field) =>
         setAiFilledFields(prev => { const n = new Set(prev); n.delete(field); return n; });
 
+    const clearFormError = (field) =>
+        setFormErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+
     const set = (field) => (val) => {
         setForm(prev => ({ ...prev, [field]: val }));
         clearAiField(field);
+        clearFormError(field);
     };
     const setInput = (field) => (e) => {
         setForm(prev => ({ ...prev, [field]: e.target.value }));
         clearAiField(field);
+        clearFormError(field);
     };
 
     const addTag = () => {
         const tag = tagInput.trim().toLowerCase();
         if (tag && !form.tags.includes(tag)) setForm(prev => ({ ...prev, tags: [...prev.tags, tag] }));
         setTagInput('');
+        clearAiField('tags');
     };
-    const removeTag = (tag) => setForm(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
+    const removeTag = (tag) => {
+        setForm(prev => ({ ...prev, tags: prev.tags.filter(t => t !== tag) }));
+        clearAiField('tags');
+    };
 
     const addImageUrl = () => {
         const url = imageInput.trim();
         if (url && !form.images.includes(url)) setForm(prev => ({ ...prev, images: [...prev.images, url] }));
         setImageInput('');
     };
-    const removeImage = (url) => setForm(prev => ({ ...prev, images: prev.images.filter(u => u !== url) }));
+    const removeImage = (url) => setForm(prev => ({ ...prev, images: form.images.filter(u => u !== url) }));
 
     // Upload a file to Firebase Storage and add the resulting URL to form.images
     const uploadFile = async (file) => {
@@ -145,8 +175,7 @@ export default function AddProductPage() {
             .forEach(uploadFile);
     };
 
-    // Core analysis logic — accepts a URL directly so it can be called from
-    // both the manual Analyse button and the drag-and-drop file upload path.
+    // Core analysis logic
     const runAiAnalysis = async (url) => {
         setAnalysing(true);
         setAiFilledFields(new Set());
@@ -167,11 +196,18 @@ export default function AddProductPage() {
             AI_FIELDS.forEach(f => {
                 if (data[f] != null && data[f] !== '') { updates[f] = data[f]; filled.add(f); }
             });
+            // Tags are an array — merge with existing, cap at 4
+            const aiTags = Array.isArray(data.tags) && data.tags.length > 0 ? data.tags : null;
+            if (aiTags) filled.add('tags');
+
             setForm(prev => ({
                 ...prev,
                 ...updates,
+                ...(aiTags ? { tags: [...new Set([...prev.tags, ...aiTags])].slice(0, 4) } : {}),
                 images: prev.images.includes(url) ? prev.images : [url, ...prev.images],
             }));
+            // Clear any form errors on fields the AI just filled
+            filled.forEach(f => clearFormError(f));
             setAiFilledFields(filled);
             setAiResultCount(filled.size);
         } catch {
@@ -180,11 +216,8 @@ export default function AddProductPage() {
         setAnalysing(false);
     };
 
-    // Called by the Analyse button when URL is typed/pasted manually
     const handleAiAnalyse = () => { if (aiImageUrl) runAiAnalysis(aiImageUrl); };
 
-    // Called when a file is dropped/selected in the AI section —
-    // uploads to Firebase Storage then immediately triggers analysis
     const handleAiFileDrop = async (file) => {
         if (!file || !file.type.startsWith('image/')) return;
         setAnalysing(true);
@@ -202,8 +235,27 @@ export default function AddProductPage() {
         }
     };
 
-    const handleSubmit = async (e) => {
+    // Custom validation — returns true if all required fields are filled
+    const validate = () => {
+        const errors = {};
+        if (!form.title.trim())    errors.title     = 'Title is required';
+        if (!form.brand.trim())    errors.brand     = 'Brand is required';
+        if (!form.category)        errors.category  = 'Category is required';
+        if (!form.condition)       errors.condition = 'Condition is required';
+        if (!form.size)            errors.size      = 'Size is required';
+        if (!form.gender)          errors.gender    = 'Gender is required';
+        if (!String(form.price).trim() || Number(form.price) <= 0) errors.price = 'A valid sale price is required';
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    const handleSubmit = (e) => {
         e.preventDefault();
+        if (validate()) setShowPreview(true);
+    };
+
+    // called from the preview modal's Confirm button
+    const doSave = async () => {
         setError('');
         setLoading(true);
         try {
@@ -223,6 +275,7 @@ export default function AddProductPage() {
             router.push('/admin/products');
         } catch (err) {
             setError(err.message);
+            setShowPreview(false);
             setLoading(false);
         }
     };
@@ -245,7 +298,7 @@ export default function AddProductPage() {
                 <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-sm">{error}</div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} noValidate className="space-y-6">
 
                 {/* ── AI Quick Fill ─────────────────────────────────────────────── */}
                 <div className="bg-gradient-to-br from-indigo-50 to-violet-50/40 rounded-2xl border border-indigo-200/60 shadow-sm p-6 space-y-4">
@@ -256,7 +309,7 @@ export default function AddProductPage() {
                             </div>
                             <div>
                                 <h3 className="text-sm font-bold text-slate-900">Quick Fill with AI</h3>
-                                <p className="text-xs text-slate-500 mt-0.5">Drop or paste one image — AI auto-fills up to 7 fields instantly</p>
+                                <p className="text-xs text-slate-500 mt-0.5">Drop or paste one image — AI auto-fills up to 11 fields instantly</p>
                             </div>
                         </div>
                         {aiResultCount > 0 && (
@@ -344,7 +397,7 @@ export default function AddProductPage() {
 
                     {!aiImageUrl && !analysing && (
                         <p className="text-xs text-slate-400">
-                            Fills: Condition, Colour, Fit, Wash, Rise, Era, Description. All editable after. The image is also added to product photos.
+                            Fills: Category, Gender, Style, Condition, Colour, Fit, Wash, Rise, Era, Tags, Description. All editable after. The image is also added to product photos.
                         </p>
                     )}
                 </div>
@@ -352,22 +405,50 @@ export default function AddProductPage() {
                 {/* ── Core Information ──────────────────────────────────────────── */}
                 <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 space-y-5">
                     <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-4">Core Information</h3>
-                    <FormField label="Product Title" required>
-                        <Input value={form.title} onChange={setInput('title')} required
+                    <FormField label="Product Title" required error={formErrors.title}>
+                        <Input value={form.title} onChange={setInput('title')}
                             placeholder="e.g. Vintage Levi's 501 Original Fit Jeans"
-                            className="bg-slate-50 border-slate-200 focus-visible:ring-indigo-600" />
+                            className={`focus-visible:ring-indigo-600 ${formErrors.title ? 'border-rose-400 bg-rose-50/30' : 'bg-slate-50 border-slate-200'}`} />
                     </FormField>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        <FormField label="Brand" required>
-                            <Input value={form.brand} onChange={setInput('brand')} required placeholder="e.g. Levi's"
-                                className="bg-slate-50 border-slate-200 focus-visible:ring-indigo-600" />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                        <FormField label="Brand" required error={formErrors.brand}>
+                            <Input value={form.brand} onChange={setInput('brand')} placeholder="e.g. Levi's"
+                                className={`focus-visible:ring-indigo-600 ${formErrors.brand ? 'border-rose-400 bg-rose-50/30' : 'bg-slate-50 border-slate-200'}`} />
                         </FormField>
                         <SelectField
                             label="Category" required
                             value={form.category} onChange={set('category')}
                             options={categories.length ? categories : ['Loading…']}
                             placeholder="Select Category"
+                            isAiFilled={isAiFilled('category')}
+                            error={formErrors.category}
                         />
+                        <FormField label="Size" required error={formErrors.size}>
+                            <Select value={form.size} onValueChange={set('size')}>
+                                <SelectTrigger className={`bg-slate-50 border-slate-200 text-sm focus:ring-indigo-600 ${formErrors.size ? 'border-rose-400 bg-rose-50/30' : ''}`}>
+                                    <SelectValue placeholder="Select size" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Letter Size</SelectLabel>
+                                        {LETTER_SIZES.map(({ value, equiv }) => (
+                                            <SelectItem key={value} value={value}>
+                                                <span className="flex items-center gap-4">
+                                                    <span className="font-medium w-8">{value}</span>
+                                                    <span className="text-slate-400 text-xs">≈ {equiv}"</span>
+                                                </span>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                    <SelectGroup>
+                                        <SelectLabel>Waist Size (inches)</SelectLabel>
+                                        {WAIST_SIZES.map(s => (
+                                            <SelectItem key={s} value={s}>{s}"</SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
+                        </FormField>
                     </div>
                     <FormField label="Description" isAiFilled={isAiFilled('description')}>
                         <textarea
@@ -386,13 +467,11 @@ export default function AddProductPage() {
                     <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-4">Denim Attributes</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
                         <SelectField label="Condition" required value={form.condition} onChange={set('condition')}
-                            options={FIELD_OPTIONS.condition} isAiFilled={isAiFilled('condition')} />
-                        <FormField label="Size" required>
-                            <Input value={form.size} onChange={setInput('size')} required placeholder="e.g. 32 or M"
-                                className="bg-slate-50 border-slate-200 focus-visible:ring-indigo-600" />
-                        </FormField>
+                            options={FIELD_OPTIONS.condition} isAiFilled={isAiFilled('condition')}
+                            error={formErrors.condition} />
                         <SelectField label="Gender" required value={form.gender} onChange={set('gender')}
-                            options={FIELD_OPTIONS.gender} />
+                            options={FIELD_OPTIONS.gender} isAiFilled={isAiFilled('gender')}
+                            error={formErrors.gender} />
                         <SelectField label="Colour" value={form.colour} onChange={set('colour')}
                             options={FIELD_OPTIONS.colour} isAiFilled={isAiFilled('colour')} />
                         <SelectField label="Fit" value={form.fit} onChange={set('fit')}
@@ -406,7 +485,7 @@ export default function AddProductPage() {
                         <SelectField label="Era" value={form.era} onChange={set('era')}
                             options={FIELD_OPTIONS.era} isAiFilled={isAiFilled('era')} />
                         <SelectField label="Style" value={form.style} onChange={set('style')}
-                            options={FIELD_OPTIONS.style} />
+                            options={FIELD_OPTIONS.style} isAiFilled={isAiFilled('style')} />
                     </div>
                 </div>
 
@@ -414,9 +493,9 @@ export default function AddProductPage() {
                 <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 space-y-5">
                     <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-4">Pricing</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                        <FormField label="Sale Price (R)" required>
-                            <Input type="number" value={form.price} onChange={setInput('price')} required min="1" placeholder="450"
-                                className="bg-slate-50 border-slate-200 focus-visible:ring-indigo-600" />
+                        <FormField label="Sale Price (R)" required error={formErrors.price}>
+                            <Input type="number" value={form.price} onChange={setInput('price')} min="1" placeholder="450"
+                                className={`focus-visible:ring-indigo-600 ${formErrors.price ? 'border-rose-400 bg-rose-50/30' : 'bg-slate-50 border-slate-200'}`} />
                         </FormField>
                         <FormField label="Original / RRP (R)">
                             <Input type="number" value={form.originalPrice} onChange={setInput('originalPrice')} min="1" placeholder="899"
@@ -438,7 +517,6 @@ export default function AddProductPage() {
                 <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 space-y-4">
                     <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-4">Product Images</h3>
 
-                    {/* Drag-and-drop zone */}
                     <div
                         onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                         onDragLeave={() => setDragActive(false)}
@@ -472,7 +550,6 @@ export default function AddProductPage() {
                         )}
                     </div>
 
-                    {/* URL paste fallback */}
                     <div className="flex items-center gap-2">
                         <div className="flex-1 h-px bg-slate-100" />
                         <span className="text-xs text-slate-400 shrink-0">or paste a URL</span>
@@ -489,7 +566,6 @@ export default function AddProductPage() {
                         </Button>
                     </div>
 
-                    {/* Image thumbnails */}
                     {form.images.length > 0 && (
                         <div className="flex flex-wrap gap-3 pt-1">
                             {form.images.map((url, i) => (
@@ -507,7 +583,10 @@ export default function AddProductPage() {
 
                 {/* ── Tags ──────────────────────────────────────────────────────── */}
                 <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 space-y-4">
-                    <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-4">Tags</h3>
+                    <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-4 flex items-center gap-2">
+                        Tags
+                        {isAiFilled('tags') && <Sparkles className="w-3.5 h-3.5 text-indigo-400" />}
+                    </h3>
                     <div className="flex gap-2">
                         <Input value={tagInput} onChange={(e) => setTagInput(e.target.value)}
                             placeholder="e.g. selvedge, vintage, 501"
@@ -532,11 +611,20 @@ export default function AddProductPage() {
 
                 <div className="flex items-center justify-end gap-3 pb-8">
                     <Button type="button" variant="outline" onClick={() => router.push('/admin/products')} className="rounded-xl">Cancel</Button>
-                    <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 rounded-xl gap-2 min-w-[140px]">
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Product'}
+                    <Button type="submit" disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl gap-2 min-w-[140px]">
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Preview & Save'}
                     </Button>
                 </div>
             </form>
+
+            {showPreview && (
+                <ProductPreviewModal
+                    form={form}
+                    onClose={() => setShowPreview(false)}
+                    onConfirm={doSave}
+                    saving={loading}
+                />
+            )}
         </div>
     );
 }

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Pencil, Trash2, Loader2, Eye, X } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Loader2, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ const SORT_OPTIONS = [
 ];
 
 const CONDITIONS = ['new with tags', 'like new', 'good', 'fair'];
+const ITEMS_PER_PAGE = 25;
 
 const getTs = (ts) => {
     if (!ts) return 0;
@@ -48,6 +49,7 @@ export default function AdminProductsPage() {
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [conditionFilter, setConditionFilter] = useState('all');
     const [deletingId, setDeletingId] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
 
     const fetchProducts = async () => {
         setLoading(true);
@@ -68,6 +70,7 @@ export default function AdminProductsPage() {
     };
 
     useEffect(() => { if (user) fetchProducts(); }, [user]);
+    useEffect(() => { setCurrentPage(1); }, [search, statusFilter, categoryFilter, conditionFilter, sortBy]);
 
     const handleDelete = async (id) => {
         if (!confirm('Delete this product? This cannot be undone.')) return;
@@ -113,14 +116,14 @@ export default function AdminProductsPage() {
         })
         .sort((a, b) => {
             switch (sortBy) {
-                case 'newest':     return getTs(b.createdAt) - getTs(a.createdAt);
-                case 'oldest':     return getTs(a.createdAt) - getTs(b.createdAt);
-                case 'most_viewed':return (b.views ?? 0) - (a.views ?? 0);
+                case 'newest': return getTs(b.createdAt) - getTs(a.createdAt);
+                case 'oldest': return getTs(a.createdAt) - getTs(b.createdAt);
+                case 'most_viewed': return (b.views ?? 0) - (a.views ?? 0);
                 case 'price_desc': return (Number(b.price) || 0) - (Number(a.price) || 0);
-                case 'price_asc':  return (Number(a.price) || 0) - (Number(b.price) || 0);
-                case 'az':         return (a.title ?? '').localeCompare(b.title ?? '');
-                case 'za':         return (b.title ?? '').localeCompare(a.title ?? '');
-                default:           return 0;
+                case 'price_asc': return (Number(a.price) || 0) - (Number(b.price) || 0);
+                case 'az': return (a.title ?? '').localeCompare(b.title ?? '');
+                case 'za': return (b.title ?? '').localeCompare(a.title ?? '');
+                default: return 0;
             }
         });
 
@@ -145,23 +148,21 @@ export default function AdminProductsPage() {
                 {STATUS_TABS.map(tab => {
                     const count = tab.value === 'all' ? products.length
                         : tab.value === 'available' ? availableCount
-                        : soldCount;
+                            : soldCount;
                     return (
                         <button
                             key={tab.value}
                             onClick={() => setStatusFilter(tab.value)}
-                            className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
-                                statusFilter === tab.value
+                            className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${statusFilter === tab.value
                                     ? 'bg-indigo-600 text-white shadow-sm'
                                     : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-200 hover:text-indigo-600'
-                            }`}
+                                }`}
                         >
                             {tab.label}
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                                statusFilter === tab.value
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${statusFilter === tab.value
                                     ? 'bg-white/20 text-white'
                                     : 'bg-slate-100 text-slate-500'
-                            }`}>
+                                }`}>
                                 {count}
                             </span>
                         </button>
@@ -226,9 +227,53 @@ export default function AdminProductsPage() {
                 )}
 
                 <span className="ml-auto text-xs text-slate-400 font-medium shrink-0">
-                    {processed.length} result{processed.length !== 1 ? 's' : ''}
+                    {processed.length === 0 ? '0 results' : (
+                        <>
+                            Showing <span className="text-slate-600">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, processed.length)}</span> of <span className="text-slate-600">{processed.length}</span>
+                        </>
+                    )}
                 </span>
             </div>
+
+            {/* Pagination */}
+            {!loading && Math.ceil(processed.length / ITEMS_PER_PAGE) > 1 && (
+                <div className="flex items-center justify-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => p - 1)}
+                        disabled={currentPage === 1}
+                        className="h-9 w-9 p-0 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </Button>
+
+                    {Array.from({ length: Math.ceil(processed.length / ITEMS_PER_PAGE) }, (_, i) => i + 1).map(page => (
+                        <Button
+                            key={page}
+                            size="sm"
+                            onClick={() => setCurrentPage(page)}
+                            className={`h-9 w-9 p-0 text-sm font-medium ${
+                                page === currentPage
+                                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600'
+                                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                            }`}
+                        >
+                            {page}
+                        </Button>
+                    ))}
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => p + 1)}
+                        disabled={currentPage === Math.ceil(processed.length / ITEMS_PER_PAGE)}
+                        className="h-9 w-9 p-0 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                    >
+                        <ChevronRight className="w-4 h-4" />
+                    </Button>
+                </div>
+            )}
 
             {/* Table */}
             <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
@@ -244,6 +289,7 @@ export default function AdminProductsPage() {
                                     <TableHead className="font-semibold text-slate-500">Product</TableHead>
                                     <TableHead className="font-semibold text-slate-500">Category</TableHead>
                                     <TableHead className="font-semibold text-slate-500">Size</TableHead>
+                                    <TableHead className="font-semibold text-slate-500">Colour</TableHead>
                                     <TableHead className="font-semibold text-slate-500">Condition</TableHead>
                                     <TableHead className="font-semibold text-slate-500">Price</TableHead>
                                     <TableHead className="font-semibold text-slate-500">Status</TableHead>
@@ -252,7 +298,7 @@ export default function AdminProductsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {processed.map(product => (
+                                {processed.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(product => (
                                     <TableRow key={product.id} className="border-slate-100 hover:bg-slate-50/50">
                                         <TableCell>
                                             <div className="flex items-center gap-3">
@@ -271,6 +317,7 @@ export default function AdminProductsPage() {
                                         </TableCell>
                                         <TableCell className="text-slate-600 text-sm">{product.category}</TableCell>
                                         <TableCell className="text-slate-600 text-sm">{product.size}</TableCell>
+                                        <TableCell className="text-slate-600 text-sm">{product.colour}</TableCell>
                                         <TableCell>
                                             <Badge variant="outline" className={`text-[10px] font-bold uppercase rounded-sm ${getConditionStyles(product.condition)}`}>
                                                 {product.condition}
@@ -312,7 +359,7 @@ export default function AdminProductsPage() {
                                 ))}
                                 {processed.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="text-center py-12 text-slate-400">
+                                        <TableCell colSpan={9} className="text-center py-12 text-slate-400">
                                             {hasActiveFilters
                                                 ? 'No products match the current filters.'
                                                 : 'No products yet. Add your first one!'}

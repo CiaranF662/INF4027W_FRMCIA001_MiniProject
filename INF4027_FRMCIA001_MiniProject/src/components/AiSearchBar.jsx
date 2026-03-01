@@ -60,6 +60,7 @@ export default function AiSearchBar({ variant = 'desktop', onSearchComplete }) {
             const params = new URLSearchParams();
             if (filters.category) params.set('category',  filters.category);
             if (filters.gender)   params.set('gender',    filters.gender);
+            if (filters.colour)   params.set('colour',    filters.colour);
             if (filters.brand)    params.set('brand',     filters.brand);
             if (filters.minPrice) params.set('minPrice',  filters.minPrice);
             if (filters.maxPrice) params.set('maxPrice',  filters.maxPrice);

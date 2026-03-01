@@ -12,10 +12,11 @@ import {
 const FILTERS = {
     Category: ["Jeans", "Jackets", "Shorts", "Skirts", "Overalls", "Shirts", "Accessories"],
     Brand: ["Levi's", "Wrangler", "Lee", "Diesel", "G-Star RAW", "Guess", "Mr Price", "Woolworths", "Cotton On"],
-    Size: ["24", "26", "28", "30", "32", "34", "36", "38", "40"],
+    Colour: ["Blue", "Dark Indigo", "Black", "White", "Grey", "Green", "Olive", "Beige / Tan", "Brown", "Pink", "Red", "Burgundy", "Purple", "Orange", "Yellow", "Multi / Pattern"],
+    Size: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "38", "40", "42"],
     Fit: ["Skinny", "Slim", "Straight", "Relaxed", "Bootcut", "Wide Leg", "Mom", "Boyfriend", "Flare", "Baggy"],
     Rise: ["Low Rise", "Mid Rise", "High Rise"],
-    Wash: ["Raw", "Dark", "Medium", "Light", "Acid", "Distressed", "Stone Wash"],
+    Wash: ["Raw/Unwashed", "Dark", "Medium", "Light", "Acid", "Distressed", "Stone Wash"],
     Condition: ["New with Tags", "Like New", "Good", "Fair"],
     Gender: ["Men", "Women", "Unisex"],
     Stretch: ["No Stretch", "Slight Stretch", "Stretch", "Super Stretch"]

@@ -7,12 +7,13 @@ export default function CartItem({ item, onRemove }) {
     return (
         <div className="p-4 sm:p-6 flex gap-4 sm:gap-6 group hover:bg-slate-50/50 transition-colors">
 
-            {/* Item Image (80px square) */}
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 bg-slate-100 rounded-xl overflow-hidden border border-slate-200/60 flex items-center justify-center text-center">
-                <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400">
-                    {item.brand}
-                </span>
-            </div>
+            {/* Item Image */}
+            <Link href={`/products/${item.id}`} className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 bg-slate-100 rounded-xl overflow-hidden border border-slate-200/60 flex items-center justify-center text-center">
+                {item.image
+                    ? <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                    : <span className="text-[10px] font-medium uppercase tracking-widest text-slate-400">{item.brand}</span>
+                }
+            </Link>
 
             {/* Item Details */}
             <div className="flex-1 flex flex-col justify-between py-1">
@@ -27,9 +28,10 @@ export default function CartItem({ item, onRemove }) {
 
                         {/* Key Attributes */}
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-xs text-slate-500">
-                            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>Size: {item.size}</span>
-                            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>Fit: {item.fit}</span>
-                            <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>{item.wash} Wash</span>
+                            {item.size    && <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>Size: {item.size}</span>}
+                            {item.colour  && <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>{item.colour}</span>}
+                            {item.fit     && <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>{item.fit}</span>}
+                            {item.wash    && <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>{item.wash} Wash</span>}
                         </div>
                     </div>
 

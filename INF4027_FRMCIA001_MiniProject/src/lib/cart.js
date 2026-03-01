@@ -1,7 +1,5 @@
 // src/lib/cart.js
-// localStorage cart utilities — cart lives in the browser.
-// Called by: ProductDetailPage (addToCart), CartPage (getCart, removeFromCart),
-//            CheckoutPage (getCart, clearCart), Navbar (getCartCount).
+// Cart stored in localStorage — second-hand items are unique so no quantities needed.
 
 const CART_KEY = 'revibe_cart';
 
@@ -31,9 +29,11 @@ export function addToCart(product) {
     title: product.title,
     brand: product.brand,
     price: product.price,
+    originalPrice: product.originalPrice || null,
     size: product.size,
-    fit: product.fit,
-    wash: product.wash,
+    colour: product.colour || null,
+    fit: product.fit || null,
+    wash: product.wash || null,
     image: product.images?.[0] || null,
   });
   localStorage.setItem(CART_KEY, JSON.stringify(cart));

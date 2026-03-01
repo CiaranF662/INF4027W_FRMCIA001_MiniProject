@@ -2,34 +2,10 @@
 
 import { adminDb } from '@/lib/firebaseAdmin';
 
-/**
- * ReportService — aggregates data from multiple Firestore collections                                                                                                       
- * to power the three admin report pages.                                                                                                                                  
- *
- * Deliberately does NOT extend FirestoreService because this class
- * is not about reading/writing one collection — it is about pulling
- * data from orders, products, and users together and calculating
- * meaningful statistics from it.
- *
- * Three main methods:
- *   getFinancialReport()  — revenue, profit, payment methods
- *   getProductReport()    — best sellers, most viewed, sizes
- *   getCustomerReport()   — top buyers, locations, new vs returning
- */
+// Aggregates across orders, products and users — does not extend FirestoreService.
 class ReportService {
 
-    /**
-     * FINANCIAL REPORT — answers the question: "How is the business performing?"
-     *
-     * Returns:
-     *   - totalRevenue         → sum of all order totals
-     *   - totalCost            → sum of cost prices of every sold product
-     *   - totalProfit          → revenue minus cost
-     *   - averageOrderValue    → totalRevenue divided by number of orders
-     *   - revenueByMonth       → array for the line chart (revenue per month)
-     *   - revenueByCategory    → array for the bar chart (revenue per denim category)
-     *   - revenueByPayment     → array for the pie chart (card vs paypal vs cash)
-     */
+    // Revenue, profit, and payment breakdown — optionally scoped to a date range
     async getFinancialReport({ startDate, endDate } = {}) {
         // --- Build orders query — optionally scoped to a date range ---
         let ordersQuery = adminDb.collection('orders').orderBy('createdAt', 'asc');
@@ -141,17 +117,7 @@ class ReportService {
         };
     }
 
-    /**
-     * PRODUCT REPORT — answers the question: "What is selling and what are people looking at?"
-     *
-     * Returns:
-     *   - mostViewed         → products ranked by view count
-     *   - bestSellingItems   → products that appear most in orders
-     *   - salesByCategory    → how many items sold per denim category
-     *   - salesByBrand       → how many items sold per brand
-     *   - conditionBreakdown → what condition levels sell best
-     *   - popularSizes       → what sizes appear most in orders
-     */
+    // Sales and view counts per product, category, brand, condition and size
     async getProductReport() {
         const [ordersSnapshot, productsSnapshot] = await Promise.all([
             adminDb.collection('orders').get(),
@@ -264,15 +230,7 @@ class ReportService {
         };
     }
 
-    /**
-     * CUSTOMER REPORT — answers the question: "Who are our customers?"
-     *
-     * Returns:
-     *   - totalCustomers    → total number of registered customers
-     *   - topBuyers         → customers ranked by total spend
-     *   - customerLocations → breakdown of where customers are from
-     *   - newVsReturning    → customers grouped by month they joined
-     */
+    // Top buyers, location breakdown and sign-up trends
     async getCustomerReport() {
         const [usersSnapshot, ordersSnapshot] = await Promise.all([
             adminDb.collection('users').where('role', '==', 'customer').get(),

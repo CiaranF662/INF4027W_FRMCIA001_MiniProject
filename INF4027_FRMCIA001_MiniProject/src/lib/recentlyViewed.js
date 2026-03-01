@@ -1,7 +1,4 @@
 // src/lib/recentlyViewed.js
-// localStorage recently-viewed utility — mirrors the pattern in cart.js.
-// Called by: ProductDetailPage (trackRecentlyViewed),
-//            RecentlyViewed component (getRecentlyViewed).
 
 const KEY = 'revibe_recently_viewed';
 const MAX = 8; // keep last 8 viewed products

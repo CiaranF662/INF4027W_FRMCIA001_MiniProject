@@ -10,6 +10,7 @@
 
 import { verifyAdmin } from '@/lib/auth-helpers';
 import aiService from '@/services/aiService';
+import categoryService from '@/services/categoryService';
 
 export async function POST(request) {
     try {
@@ -25,7 +26,8 @@ export async function POST(request) {
             return Response.json({ error: 'imageUrl is required' }, { status: 400 });
         }
 
-        const result = await aiService.analyseProductImage(imageUrl, productDetails);
+        const categories = await categoryService.getAllSorted();
+        const result = await aiService.analyseProductImage(imageUrl, productDetails, categories);
         return Response.json(result);
 
     } catch (error) {

@@ -5,9 +5,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 class AIService {
     constructor() {
-        // gemini-1.5-flash: widely available on free tier (15 RPM, 1500 RPD)
-        // gemini-2.0-flash-lite: best free tier option — 1500 RPD, 30 RPM
-        this.model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+        this.model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     }
 
     /**
@@ -36,26 +34,27 @@ class AIService {
         throw lastError;
     }
 
-    /**
-     * FEATURE 1: Natural Language Search
-     * Parses a plain-English query into structured filter parameters.
-     */
-    async parseSearchQuery(userQuery) {
+    // Parses a plain-English search query into structured filter params
+    async parseSearchQuery(userQuery, categories = []) {
+        const categoryList = categories.length
+            ? categories.map(c => c.name).join(', ')
+            : 'Jeans, Jackets, Shorts, Skirts, Overalls & Dungarees, Denim Shirts, Denim Accessories, Jorts';
         const prompt = `You are a search query parser for a South African second-hand denim marketplace called Denim Revibe.
 
 Your job: extract structured filters from a natural language search query.
 
 Return ONLY valid JSON (no markdown, no backticks, no explanation). Use only these fields (omit any that are not mentioned or implied):
 {
-  "category": "one of: Jeans, Jackets, Shorts, Skirts, Overalls, Shirts, Accessories",
+  "category": "one of: ${categoryList}",
   "gender": "one of: Men, Women, Unisex — use this if the user says mens, womens, ladies, guys, unisex, etc.",
+  "colour": "one of: Blue, Dark Indigo, Black, White, Grey, Green, Olive, Beige / Tan, Brown, Pink, Red, Burgundy, Purple, Orange, Yellow, Multi / Pattern — only if a colour is mentioned or clearly implied. 'blue jeans' or 'navy' → Blue. 'indigo' or 'dark indigo' or 'dark denim' → Dark Indigo. 'white jeans' → White. 'khaki' or 'sand' → Beige / Tan.",
   "brand": "brand name if mentioned (e.g. Levi's, Wrangler, Diesel, Guess, Mr Price)",
   "minPrice": number or null,
   "maxPrice": number or null,
   "size": "size if mentioned (e.g. 32, M, L, W34, 28, XL)",
   "condition": "one of: New with Tags, Like New, Good, Fair — only if explicitly mentioned",
   "fit": "one of: Skinny, Slim, Straight, Relaxed, Bootcut, Wide Leg, Mom, Boyfriend, Flare, Baggy — only if mentioned",
-  "wash": "one of: Raw/Unwashed, Dark, Medium, Light, Acid, Distressed, Stone Wash — only if mentioned",
+  "wash": "one of: Raw/Unwashed, Dark, Medium, Light, Acid, Distressed, Stone Wash — only if the washing/finish treatment is mentioned (e.g. 'acid wash', 'raw denim', 'distressed')",
   "onSale": "true — only if the user mentions sale, deals, discounts, or bargains",
   "sortBy": "one of: newest, price-asc, price-desc, discount, views — only if sorting is implied (e.g. 'cheapest' = price-asc, 'newest' = newest, 'most popular' = views)",
   "search": "any remaining keywords that don't fit the above filters"
@@ -64,11 +63,14 @@ Return ONLY valid JSON (no markdown, no backticks, no explanation). Use only the
 Important rules:
 - "mens jeans" → gender: "Men", category: "Jeans"
 - "womens jackets" → gender: "Women", category: "Jackets"
+- "blue jeans" or "navy jeans" or "indigo jeans" → colour: "Blue", category: "Jeans"
+- "green jeans" → colour: "Green", category: "Jeans"
+- "black jeans" → colour: "Black", category: "Jeans"
 - "under R500" or "below 500" → maxPrice: 500
 - "over R200" or "above 200" → minPrice: 200
 - "on sale" or "deals" → onSale: "true"
 - "cheapest" or "lowest price" → sortBy: "price-asc"
-- "dark wash" → wash: "Dark"
+- "dark wash" → wash: "Dark" (this is a wash treatment, NOT a colour)
 - "relaxed fit" → fit: "Relaxed"
 - If the user just says "jeans", only set category. Don't add gender unless specified.
 - South African Rands use "R" prefix (R500 = 500)
@@ -85,10 +87,7 @@ User query: "${userQuery}"`;
         }
     }
 
-    /**
-     * FEATURE 2: Product Description Generator
-     * Writes a compelling listing description from product details.
-     */
+    // Generates a listing description from the product's known details
     async generateProductDescription(productDetails) {
         const { title, brand, category, condition, size, colour, fit } = productDetails;
 
@@ -113,16 +112,12 @@ Fit: ${fit || 'Not provided'}`;
         return await this._generate(prompt);
     }
 
-    /**
-     * FEATURE 3: AI Product Image Analysis
-     * Fetches an image from a URL, encodes it as base64, and asks Gemini to
-     * return structured denim attributes + a listing description in one call.
-     *
-     * Returns: { condition, colour, fit, rise, wash, era, description }
-     * Any field the model can't determine is returned as null.
-     */
-    async analyseProductImage(imageUrl, productDetails) {
+    // Sends the image to Gemini and returns structured denim attributes + a description
+    async analyseProductImage(imageUrl, productDetails, categories = []) {
         const { title, brand, category } = productDetails;
+        const categoryList = categories.length
+            ? categories.map(c => c.name).join(' | ')
+            : 'Jeans | Jackets | Shorts | Skirts | Overalls & Dungarees | Denim Shirts | Denim Accessories | Jorts';
 
         // Fetch the image server-side and convert to base64 for the Gemini multimodal API
         const imageResp = await fetch(imageUrl);
@@ -135,11 +130,15 @@ Fit: ${fit || 'Not provided'}`;
 
 {
   "condition": "one of: New with Tags | Like New | Good | Fair",
-  "colour": "one of: Indigo | Dark Wash | Medium Wash | Light Wash | Black | White | Grey | Raw | Acid Wash",
+  "colour": "one of: Blue | Dark Indigo | Black | White | Grey | Green | Olive | Beige / Tan | Brown | Pink | Red | Burgundy | Purple | Orange | Yellow | Multi / Pattern — pick the closest hue. Classic blue denim → Blue. Very dark/raw indigo denim → Dark Indigo.",
   "fit": "one of: Skinny | Slim | Straight | Relaxed | Bootcut | Wide Leg | Mom | Boyfriend | Flare | Baggy — or null if unclear",
   "rise": "one of: Low Rise | Mid Rise | High Rise — or null if unclear",
   "wash": "one of: Raw/Unwashed | Dark | Medium | Light | Acid | Distressed | Stone Wash — or null if unclear",
   "era": "one of: Vintage 70s | Vintage 80s | Vintage 90s | Y2K | Modern — or null if unclear",
+  "category": "one of: ${categoryList} — dungarees/bibs count as Overalls & Dungarees",
+  "gender": "one of: Men | Women | Unisex — or null if genuinely unclear",
+  "style": "one of: Vintage | Streetwear | Classic | Workwear | Designer | Casual — or null if unclear",
+  "tags": ["3 to 4 specific lowercase descriptive tags, e.g. selvedge, wide-leg, acid-wash, y2k, bootcut, distressed — based on what you can see"],
   "description": "2-3 sentences, authentic South African English, casual-premium tone. Do not include price or title."
 }
 
@@ -166,10 +165,7 @@ Product context — Title: ${title || 'Unknown'}, Brand: ${brand || 'Unknown'}, 
         throw lastError;
     }
 
-    /**
-     * FEATURE 4: Report Insights (on-demand only)
-     * Analyzes report data and returns actionable business insights.
-     */
+    // Summarises a report into 3-4 actionable bullet points
     async generateReportInsights(reportType, reportData) {
         // Trim large arrays to reduce token usage and avoid hitting limits
         const trimmed = { ...reportData };

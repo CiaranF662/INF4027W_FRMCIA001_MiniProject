@@ -1,14 +1,6 @@
 import admin from "firebase-admin";
 
-/**
- * Controls what the database allows
- * 
- * This is the backend authentication — it runs on the server and verifies that requests 
- * are genuinely from logged-in users by checking their token.
- * 
- * Formats the private key to handle newline characters correctly,
- * which is a common issue when deploying to platforms like Vercel.
- */
+// Vercel stores the private key as a single string — this restores the real newlines
 function formatPrivateKey(key) {
     return key.replace(/\\n/g, "\n");
 }

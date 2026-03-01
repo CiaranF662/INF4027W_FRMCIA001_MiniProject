@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { SlidersHorizontal, X, Loader2 } from 'lucide-react';
+import { SlidersHorizontal, X, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -28,6 +28,8 @@ const PAGE_STYLES = `
     }
 `;
 
+const ITEMS_PER_PAGE = 12;
+
 export default function ProductsPage() {
     const searchParams = useSearchParams();
     const { user } = useAuth();
@@ -38,22 +40,43 @@ export default function ProductsPage() {
     const [minPrice, setMinPrice] = useState('');
     const [maxPrice, setMaxPrice] = useState('');
     const [sortBy, setSortBy] = useState('newest');
+    const [search, setSearch] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
     const [wishlistIds, setWishlistIds] = useState(new Set());
 
-    // Sync filters from the URL whenever the URL changes.
+    // Sync all filters from the URL whenever the URL changes.
+    // This runs when the AI search navigates here with query params.
     useEffect(() => {
-        const category = searchParams.get('category');
-        const gender   = searchParams.get('gender');
-        const sortBy   = searchParams.get('sortBy');
-        const onSale   = searchParams.get('onSale');
+        const category  = searchParams.get('category');
+        const gender    = searchParams.get('gender');
+        const colour    = searchParams.get('colour');
+        const brand     = searchParams.get('brand');
+        const condition = searchParams.get('condition');
+        const fit       = searchParams.get('fit');
+        const wash      = searchParams.get('wash');
+        const size      = searchParams.get('size');
+        const sortBy    = searchParams.get('sortBy');
+        const onSale    = searchParams.get('onSale');
+        const minPriceParam = searchParams.get('minPrice');
+        const maxPriceParam = searchParams.get('maxPrice');
+        const searchParam   = searchParams.get('search');
 
         const filtersFromUrl = [];
-        if (category) filtersFromUrl.push({ group: 'Category', value: category });
-        if (gender)   filtersFromUrl.push({ group: 'Gender',   value: gender });
+        if (category)  filtersFromUrl.push({ group: 'Category',  value: category });
+        if (gender)    filtersFromUrl.push({ group: 'Gender',    value: gender });
+        if (colour)    filtersFromUrl.push({ group: 'Colour',    value: colour });
+        if (brand)     filtersFromUrl.push({ group: 'Brand',     value: brand });
+        if (condition) filtersFromUrl.push({ group: 'Condition', value: condition });
+        if (fit)       filtersFromUrl.push({ group: 'Fit',       value: fit });
+        if (wash)      filtersFromUrl.push({ group: 'Wash',      value: wash });
+        if (size)      filtersFromUrl.push({ group: 'Size',      value: size });
         if (onSale === 'true') filtersFromUrl.push({ group: 'OnSale', value: 'true' });
 
         setActiveFilters(filtersFromUrl);
         setSortBy(sortBy || 'newest');
+        setMinPrice(minPriceParam || '');
+        setMaxPrice(maxPriceParam || '');
+        setSearch(searchParam || '');
     }, [searchParams]);
 
     // Fetch the user's saved wishlist IDs once
@@ -85,17 +108,19 @@ export default function ProductsPage() {
             });
             if (minPrice) params.set('minPrice', minPrice);
             if (maxPrice) params.set('maxPrice', maxPrice);
-            if (sortBy) params.set('sortBy', sortBy);
+            if (sortBy)   params.set('sortBy',   sortBy);
+            if (search)   params.set('search',   search);
 
             const res = await fetch(`/api/products?${params.toString()}`);
             const data = await res.json();
             setProducts(Array.isArray(data) ? data : []);
+            setCurrentPage(1);
         } catch {
             setProducts([]);
         } finally {
             setLoading(false);
         }
-    }, [activeFilters, minPrice, maxPrice, sortBy]);
+    }, [activeFilters, minPrice, maxPrice, sortBy, search]);
 
     useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
@@ -116,6 +141,7 @@ export default function ProductsPage() {
         setActiveFilters([]);
         setMinPrice('');
         setMaxPrice('');
+        setSearch('');
     };
 
     return (
@@ -191,8 +217,14 @@ export default function ProductsPage() {
                                 <span className="text-sm font-medium text-slate-500">
                                     {loading ? (
                                         <Loader2 className="w-4 h-4 animate-spin inline" />
+                                    ) : products.length === 0 ? (
+                                        <span className="text-slate-400">No results</span>
                                     ) : (
-                                        <><span className="text-slate-900 font-semibold">{products.length}</span> Results</>
+                                        <>
+                                            Showing <span className="text-slate-900 font-semibold">
+                                                {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, products.length)}
+                                            </span> of <span className="text-slate-900 font-semibold">{products.length}</span>
+                                        </>
                                     )}
                                 </span>
                             </div>
@@ -243,10 +275,50 @@ export default function ProductsPage() {
                         )}
 
                         <ProductGrid
-                            items={products}
+                            items={products.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)}
                             loading={loading}
                             wishlistIds={wishlistIds}
                         />
+
+                        {/* Pagination */}
+                        {!loading && Math.ceil(products.length / ITEMS_PER_PAGE) > 1 && (
+                            <div className="flex items-center justify-center gap-2 mt-10">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => { setCurrentPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                    disabled={currentPage === 1}
+                                    className="h-9 w-9 p-0 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </Button>
+
+                                {Array.from({ length: Math.ceil(products.length / ITEMS_PER_PAGE) }, (_, i) => i + 1).map(page => (
+                                    <Button
+                                        key={page}
+                                        size="sm"
+                                        onClick={() => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                        className={`h-9 w-9 p-0 text-sm font-medium ${
+                                            page === currentPage
+                                                ? 'bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600'
+                                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        {page}
+                                    </Button>
+                                ))}
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => { setCurrentPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                    disabled={currentPage === Math.ceil(products.length / ITEMS_PER_PAGE)}
+                                    className="h-9 w-9 p-0 bg-white border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        )}
                     </main>
                 </div>
             </div>
