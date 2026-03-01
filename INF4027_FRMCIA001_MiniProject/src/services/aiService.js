@@ -165,6 +165,41 @@ Product context — Title: ${title || 'Unknown'}, Brand: ${brand || 'Unknown'}, 
         throw lastError;
     }
 
+    // Accepts a base64-encoded image and returns search filter params for the products page
+    async searchByImage(base64Image, mimeType) {
+        const prompt = `You are a search filter extractor for a South African second-hand denim marketplace.
+Analyse this denim garment image and return ONLY valid JSON — no markdown, no explanation.
+Only include fields you are confident about. Omit anything unclear.
+
+{
+  "category": "one of: Jeans | Jackets | Shorts | Skirts | Overalls & Dungarees | Denim Shirts | Denim Accessories | Jorts — or null",
+  "gender": "one of: Men | Women | Unisex — or null",
+  "colour": "one of: Blue | Dark Indigo | Black | White | Grey | Green | Olive | Beige / Tan | Brown | Pink | Red | Burgundy | Purple | Orange | Yellow | Multi / Pattern — or null",
+  "fit": "one of: Skinny | Slim | Straight | Relaxed | Bootcut | Wide Leg | Mom | Boyfriend | Flare | Baggy — or null",
+  "wash": "one of: Raw/Unwashed | Dark | Medium | Light | Acid | Distressed | Stone Wash — or null"
+}`;
+
+        const MAX_RETRIES = 3;
+        let lastError;
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            try {
+                const result = await this.model.generateContent([
+                    { inlineData: { data: base64Image, mimeType } },
+                    { text: prompt },
+                ]);
+                const text = result.response.text();
+                const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                return JSON.parse(cleaned);
+            } catch (err) {
+                lastError = err;
+                const is429 = err?.status === 429 || err?.message?.includes('429');
+                if (!is429 || attempt === MAX_RETRIES - 1) throw err;
+                await new Promise(r => setTimeout(r, Math.pow(2, attempt + 1) * 1000));
+            }
+        }
+        throw lastError;
+    }
+
     // Summarises a report into 3-4 actionable bullet points
     async generateReportInsights(reportType, reportData) {
         // Trim large arrays to reduce token usage and avoid hitting limits

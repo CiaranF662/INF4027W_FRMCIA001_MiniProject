@@ -120,6 +120,7 @@ export default function LandingPage() {
   const [bestDeals, setBestDeals] = useState([]);
   const [categories, setCategories] = useState([]);
   const [aiSearching, setAiSearching] = useState(false);
+  const [imageSearching, setImageSearching] = useState(false);
 
   // Fetch all homepage data in parallel on mount
   useEffect(() => {
@@ -187,6 +188,28 @@ export default function LandingPage() {
     }
   };
 
+  const handleImageSearch = async (file) => {
+    if (!file) return;
+    setImageSearching(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/ai/search-by-image', { method: 'POST', body: formData });
+      const { filters } = await res.json();
+      const params = new URLSearchParams();
+      if (filters.category) params.set('category', filters.category);
+      if (filters.gender)   params.set('gender',   filters.gender);
+      if (filters.colour)   params.set('colour',   filters.colour);
+      if (filters.fit)      params.set('fit',       filters.fit);
+      if (filters.wash)     params.set('wash',      filters.wash);
+      router.push(`/products?${params.toString()}`);
+    } catch {
+      router.push('/products');
+    } finally {
+      setImageSearching(false);
+    }
+  };
+
   return (
     <div className="rv-root">
       <style dangerouslySetInnerHTML={{ __html: PAGE_STYLES }} />
@@ -197,6 +220,8 @@ export default function LandingPage() {
         categories={categories}
         handleSearch={handleSearch}
         aiSearching={aiSearching}
+        handleImageSearch={handleImageSearch}
+        imageSearching={imageSearching}
       />
 
       <FeaturedProducts items={newArrivals} />

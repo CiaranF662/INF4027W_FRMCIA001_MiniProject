@@ -1,27 +1,11 @@
 "use client";
 
-import React from 'react';
+import React, { useRef } from 'react';
 import Link from 'next/link';
-import { Search, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
+import { Search, ArrowRight, Sparkles, Loader2, Camera } from 'lucide-react';
 
-/**
- * HeroSection — the top of the homepage.
- *
- * Renders three visual blocks:
- *   1. The split hero (headline + AI search bar + category chips)
- *   2. The indigo ticker marquee banner
- *   3. The "Shop by Category" pill grid
- *
- * All three share the `categories` data so they live together here.
- *
- * Props:
- *   searchQuery     — controlled input value from LandingPage
- *   setSearchQuery  — setter to update the input
- *   categories      — array of category objects fetched from /api/categories
- *   handleSearch    — form submit handler (AI search logic lives in LandingPage)
- *   aiSearching     — boolean, true while the AI search API call is in flight
- */
-export default function HeroSection({ searchQuery, setSearchQuery, categories, handleSearch, aiSearching }) {
+export default function HeroSection({ searchQuery, setSearchQuery, categories, handleSearch, aiSearching, handleImageSearch, imageSearching }) {
+  const fileInputRef = useRef(null);
   return (
     <>
       {/* ── 1. Hero split layout ── */}
@@ -96,9 +80,42 @@ export default function HeroSection({ searchQuery, setSearchQuery, categories, h
                     fontFamily: "'Barlow', sans-serif", fontWeight: 400,
                   }}
                 />
+                {/* Hidden file input for image search */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => { if (e.target.files?.[0]) handleImageSearch(e.target.files[0]); e.target.value = ''; }}
+                />
+
+                {/* Camera button — vertical divider + icon */}
+                <div style={{ width: '1px', background: 'var(--rv-border)', alignSelf: 'stretch', margin: '10px 0', flexShrink: 0 }} />
+                <button
+                  type="button"
+                  title="Search by photo"
+                  disabled={imageSearching || aiSearching}
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: '44px', height: '50px', flexShrink: 0,
+                    background: 'transparent', border: 'none',
+                    cursor: imageSearching ? 'default' : 'pointer',
+                    color: imageSearching ? 'var(--rv-indigo)' : 'var(--rv-ink3)',
+                    transition: 'color 0.18s',
+                  }}
+                  onMouseEnter={e => { if (!imageSearching) e.currentTarget.style.color = 'var(--rv-indigo)'; }}
+                  onMouseLeave={e => { if (!imageSearching) e.currentTarget.style.color = 'var(--rv-ink3)'; }}
+                >
+                  {imageSearching
+                    ? <Loader2 style={{ width: '15px', height: '15px', animation: 'rv-spin 0.8s linear infinite' }} />
+                    : <Camera style={{ width: '15px', height: '15px' }} />
+                  }
+                </button>
+
                 <button
                   type="submit"
-                  disabled={aiSearching}
+                  disabled={aiSearching || imageSearching}
                   className="rv-srch-btn"
                   style={{
                     display: 'flex', alignItems: 'center', gap: '7px',
