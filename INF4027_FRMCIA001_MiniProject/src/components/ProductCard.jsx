@@ -24,7 +24,7 @@ export default function ProductCard({ item, isWishlisted = false }) {
     const handleWishlist = async (e) => {
         e.preventDefault(); // stop the card's Link from navigating
         if (!user) {
-            router.push('/auth/login'); // must be logged in to wishlist
+            router.push(`/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`); // must be logged in to wishlist                                                                
             return;
         }
         const newState = !wishlisted;
