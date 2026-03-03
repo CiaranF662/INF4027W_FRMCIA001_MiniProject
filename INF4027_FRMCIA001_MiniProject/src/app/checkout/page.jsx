@@ -32,7 +32,7 @@ export default function CheckoutPage() {
 
     // Redirect to login once AuthProvider has resolved and there is no user
     useEffect(() => {
-        if (!authLoading && !user) router.push('/auth/login');
+        if (!authLoading && !user) router.push('/auth/login?redirect=/checkout');
     }, [user, authLoading, router]);
 
     const subtotal = cartItems.reduce((acc, item) => acc + item.price, 0);

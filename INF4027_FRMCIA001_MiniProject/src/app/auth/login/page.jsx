@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 
 export default function LoginPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -34,8 +35,14 @@ export default function LoginPage() {
             const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
             const role = userDoc.data()?.role || 'customer';
 
-            // 3. Redirect: admins go to the admin portal, customers go to the homepage
-            router.push(role === 'admin' ? '/admin' : '/');
+            // 3. Redirect: honour the ?redirect= param (e.g. from checkout),
+            //    otherwise admins go to admin portal and customers go home
+            const redirectTo = searchParams.get('redirect');
+            if (redirectTo) {
+                router.push(redirectTo);
+            } else {
+                router.push(role === 'admin' ? '/admin' : '/');
+            }
 
         } catch (err) {
             // Map Firebase error codes to friendly messages

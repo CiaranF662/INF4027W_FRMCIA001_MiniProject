@@ -158,6 +158,23 @@ export default function LandingPage() {
     const q = searchQuery.trim();
     if (!q) { router.push('/products'); return; }
 
+    // Detect image URLs and route through image search instead
+    if (/^https?:\/\//i.test(q)) {
+      setImageSearching(true);
+      try {
+        const res = await fetch(q);
+        const blob = await res.blob();
+        const file = new File([blob], 'pasted-image.jpg', { type: blob.type || 'image/jpeg' });
+        await handleImageSearch(file);
+      } catch {
+        router.push('/products');
+      } finally {
+        setImageSearching(false);
+        setSearchQuery('');
+      }
+      return;
+    }
+
     setAiSearching(true);
     try {
       const res = await fetch('/api/ai/search', {
@@ -168,18 +185,18 @@ export default function LandingPage() {
       const { filters } = await res.json();
       const params = new URLSearchParams();
       if (filters.category) params.set('category', filters.category);
-      if (filters.gender)   params.set('gender',   filters.gender);
-      if (filters.colour)   params.set('colour',   filters.colour);
-      if (filters.brand)    params.set('brand',     filters.brand);
-      if (filters.minPrice) params.set('minPrice',  filters.minPrice);
-      if (filters.maxPrice) params.set('maxPrice',  filters.maxPrice);
-      if (filters.size)     params.set('size',      filters.size);
-      if (filters.condition)params.set('condition', filters.condition);
-      if (filters.fit)      params.set('fit',       filters.fit);
-      if (filters.wash)     params.set('wash',      filters.wash);
-      if (filters.onSale)   params.set('onSale',    filters.onSale);
-      if (filters.sortBy)   params.set('sortBy',    filters.sortBy);
-      if (filters.search)   params.set('search',    filters.search);
+      if (filters.gender) params.set('gender', filters.gender);
+      if (filters.colour) params.set('colour', filters.colour);
+      if (filters.brand) params.set('brand', filters.brand);
+      if (filters.minPrice) params.set('minPrice', filters.minPrice);
+      if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
+      if (filters.size) params.set('size', filters.size);
+      if (filters.condition) params.set('condition', filters.condition);
+      if (filters.fit) params.set('fit', filters.fit);
+      if (filters.wash) params.set('wash', filters.wash);
+      if (filters.onSale) params.set('onSale', filters.onSale);
+      if (filters.sortBy) params.set('sortBy', filters.sortBy);
+      if (filters.search) params.set('search', filters.search);
       router.push(`/products?${params.toString()}`);
     } catch {
       router.push(`/products?search=${encodeURIComponent(q)}`);
@@ -198,10 +215,7 @@ export default function LandingPage() {
       const { filters } = await res.json();
       const params = new URLSearchParams();
       if (filters.category) params.set('category', filters.category);
-      if (filters.gender)   params.set('gender',   filters.gender);
-      if (filters.colour)   params.set('colour',   filters.colour);
-      if (filters.fit)      params.set('fit',       filters.fit);
-      if (filters.wash)     params.set('wash',      filters.wash);
+      if (filters.colour) params.set('colour', filters.colour);
       router.push(`/products?${params.toString()}`);
     } catch {
       router.push('/products');
@@ -252,8 +266,8 @@ export default function LandingPage() {
 
             <div style={{ display: 'flex', gap: '28px', alignItems: 'center' }}>
               {[
-                { href: '/products',   label: 'Browse' },
-                { href: '/cart',       label: 'Cart' },
+                { href: '/products', label: 'Browse' },
+                { href: '/cart', label: 'Cart' },
                 { href: '/auth/login', label: 'Login / Register' },
               ].map(l => (
                 <Link
