@@ -92,7 +92,7 @@ export default function ProductDetailPage({ params }) {
     }, [user, id]);
 
     const handleWishlist = async () => {
-        if (!user) { router.push('/auth/login'); return; }
+         if (!user) { router.push(`/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`); return; }  
         setWishlistLoading(true);
         const idToken = await user.getIdToken();
         if (wishlisted) {
