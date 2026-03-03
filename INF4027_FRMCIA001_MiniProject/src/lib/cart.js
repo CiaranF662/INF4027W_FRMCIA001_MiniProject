@@ -38,6 +38,7 @@ export function addToCart(product) {
   });
   localStorage.setItem(CART_KEY, JSON.stringify(cart));
   window.dispatchEvent(new Event('cartUpdated'));
+  window.dispatchEvent(new Event('cartItemAdded'));
   return true;
 }
 

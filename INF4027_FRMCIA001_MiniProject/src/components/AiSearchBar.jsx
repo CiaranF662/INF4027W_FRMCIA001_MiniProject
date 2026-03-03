@@ -4,22 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Sparkles, Loader2 } from 'lucide-react';
 
-/**
- * AiSearchBar — the expandable AI-powered search input used in the Navbar.
- *
- * Owns all AI search state and logic so the Navbar stays clean:
- *   - aiQuery       (what the user has typed)
- *   - aiSearching   (true while the API call is in flight)
- *   - searchOpen    (desktop only — whether the expandable form is open)
- *
- * Calls POST /api/ai/search, which asks Gemini to turn natural language
- * into structured filter params, then navigates to /products with those params.
- *
- * Props:
- *   variant          — "desktop" (default) | "mobile"
- *   onSearchComplete — optional callback fired after a successful search,
- *                      used by Navbar to close the mobile menu
- */
+
 export default function AiSearchBar({ variant = 'desktop', onSearchComplete }) {
     const router = useRouter();
     const [aiQuery, setAiQuery] = useState('');
@@ -47,6 +32,31 @@ export default function AiSearchBar({ variant = 'desktop', onSearchComplete }) {
         const q = aiQuery.trim();
         if (!q) return;
 
+        // Detect image URLs and run image search instead
+        if (/^https?:\/\//i.test(q)) {
+            setAiSearching(true);
+            try {
+                const imgRes = await fetch(q);
+                const blob = await imgRes.blob();
+                const formData = new FormData();
+                formData.append('file', new File([blob], 'pasted-image.jpg', { type: blob.type || 'image/jpeg' }));
+                const res = await fetch('/api/ai/search-by-image', { method: 'POST', body: formData });
+                const { filters } = await res.json();
+                const params = new URLSearchParams();
+                if (filters.category) params.set('category', filters.category);
+                if (filters.colour) params.set('colour', filters.colour);
+                router.push(`/products?${params.toString()}`);
+            } catch {
+                router.push('/products');
+            } finally {
+                setAiSearching(false);
+                setAiQuery('');
+                setSearchOpen(false);
+                onSearchComplete?.();
+            }
+            return;
+        }
+
         setAiSearching(true);
         try {
             const res = await fetch('/api/ai/search', {
@@ -58,19 +68,19 @@ export default function AiSearchBar({ variant = 'desktop', onSearchComplete }) {
 
             // Build URL params from Gemini's parsed filters
             const params = new URLSearchParams();
-            if (filters.category) params.set('category',  filters.category);
-            if (filters.gender)   params.set('gender',    filters.gender);
-            if (filters.colour)   params.set('colour',    filters.colour);
-            if (filters.brand)    params.set('brand',     filters.brand);
-            if (filters.minPrice) params.set('minPrice',  filters.minPrice);
-            if (filters.maxPrice) params.set('maxPrice',  filters.maxPrice);
-            if (filters.size)     params.set('size',      filters.size);
-            if (filters.condition)params.set('condition', filters.condition);
-            if (filters.fit)      params.set('fit',       filters.fit);
-            if (filters.wash)     params.set('wash',      filters.wash);
-            if (filters.onSale)   params.set('onSale',    filters.onSale);
-            if (filters.sortBy)   params.set('sortBy',    filters.sortBy);
-            if (filters.search)   params.set('search',    filters.search);
+            if (filters.category) params.set('category', filters.category);
+            if (filters.gender) params.set('gender', filters.gender);
+            if (filters.colour) params.set('colour', filters.colour);
+            if (filters.brand) params.set('brand', filters.brand);
+            if (filters.minPrice) params.set('minPrice', filters.minPrice);
+            if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
+            if (filters.size) params.set('size', filters.size);
+            if (filters.condition) params.set('condition', filters.condition);
+            if (filters.fit) params.set('fit', filters.fit);
+            if (filters.wash) params.set('wash', filters.wash);
+            if (filters.onSale) params.set('onSale', filters.onSale);
+            if (filters.sortBy) params.set('sortBy', filters.sortBy);
+            if (filters.search) params.set('search', filters.search);
 
             router.push(`/products?${params.toString()}`);
         } catch {
@@ -92,7 +102,7 @@ export default function AiSearchBar({ variant = 'desktop', onSearchComplete }) {
                     type="text"
                     value={aiQuery}
                     onChange={(e) => setAiQuery(e.target.value)}
-                    placeholder='AI Search... e.g. "relaxed fit, size 32"'
+                    placeholder='Search or paste image URL...'
                     className="w-full pl-11 pr-11 h-12 text-sm rounded-xl bg-slate-50 border border-slate-200 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-300 transition-all"
                 />
                 <button type="submit" disabled={aiSearching} className="absolute right-4 text-slate-400 hover:text-indigo-600 transition-colors">
@@ -113,7 +123,7 @@ export default function AiSearchBar({ variant = 'desktop', onSearchComplete }) {
                 className={`relative z-10 w-9 h-9 flex items-center justify-center rounded-full transition-all duration-300 ${searchOpen
                     ? 'bg-indigo-100 text-indigo-600'
                     : 'text-slate-500 hover:text-indigo-600 hover:bg-slate-100'
-                }`}
+                    }`}
             >
                 {aiSearching ? <Loader2 className="w-[18px] h-[18px] animate-spin" /> : <Sparkles className="w-[18px] h-[18px]" />}
             </button>
@@ -123,7 +133,7 @@ export default function AiSearchBar({ variant = 'desktop', onSearchComplete }) {
                 className={`absolute right-0 top-1/2 -translate-y-1/2 flex items-center transition-all duration-300 ease-out origin-right ${searchOpen
                     ? 'w-72 opacity-100 pointer-events-auto'
                     : 'w-0 opacity-0 pointer-events-none'
-                }`}
+                    }`}
             >
                 <input
                     ref={searchInputRef}
@@ -131,7 +141,7 @@ export default function AiSearchBar({ variant = 'desktop', onSearchComplete }) {
                     value={aiQuery}
                     onChange={(e) => setAiQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Escape' && setSearchOpen(false)}
-                    placeholder={`Try "mens jeans under R500"...`}
+                    placeholder={`Search text or paste image URL...`}
                     className="w-full pl-11 pr-10 h-9 text-xs rounded-full bg-white border border-indigo-200 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 shadow-lg shadow-indigo-500/10"
                 />
                 <button type="submit" disabled={aiSearching} className="absolute right-3 text-slate-400 hover:text-indigo-600 transition-colors">

@@ -41,16 +41,22 @@ class ProductService extends FirestoreService {
             products = products.filter(p => vals.includes(p.gender) || p.gender === 'Unisex');
         }
         if (filters.fit) {
-            const vals = toArray(filters.fit);
-            products = products.filter(p => vals.includes(p.fit));
+            const vals = toArray(filters.fit).map(v => v.toLowerCase());
+            products = products.filter(p => {
+                const f = (p.fit || '').toLowerCase();
+                return vals.some(v => f.includes(v) || v.includes(f));
+            });
         }
         if (filters.rise) {
             const vals = toArray(filters.rise);
             products = products.filter(p => vals.includes(p.rise));
         }
         if (filters.wash) {
-            const vals = toArray(filters.wash);
-            products = products.filter(p => vals.includes(p.wash));
+            const vals = toArray(filters.wash).map(v => v.toLowerCase());
+            products = products.filter(p => {
+                const w = (p.wash || '').toLowerCase();
+                return vals.some(v => w.includes(v) || v.includes(w));
+            });
         }
         if (filters.stretch) {
             const vals = toArray(filters.stretch);
@@ -61,8 +67,11 @@ class ProductService extends FirestoreService {
             products = products.filter(p => vals.includes(p.size));
         }
         if (filters.colour) {
-            const vals = toArray(filters.colour);
-            products = products.filter(p => vals.includes(p.colour));
+            const vals = toArray(filters.colour).map(v => v.toLowerCase());
+            products = products.filter(p => {
+                const c = (p.colour || '').toLowerCase();
+                return vals.some(v => c.includes(v) || v.includes(c));
+            });
         }
 
         if (filters.search) {

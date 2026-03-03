@@ -43,33 +43,43 @@ export default function ProductsPage() {
     const [search, setSearch] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [wishlistIds, setWishlistIds] = useState(new Set());
+    const [filtersReady, setFiltersReady] = useState(false);
+    const [categories, setCategories] = useState([]);
+
+    // Fetch categories once on mount
+    useEffect(() => {
+        fetch('/api/categories')
+            .then(res => res.json())
+            .then(data => setCategories(Array.isArray(data) ? data : []))
+            .catch(() => { });
+    }, []);
 
     // Sync all filters from the URL whenever the URL changes.
     // This runs when the AI search navigates here with query params.
     useEffect(() => {
-        const category  = searchParams.get('category');
-        const gender    = searchParams.get('gender');
-        const colour    = searchParams.get('colour');
-        const brand     = searchParams.get('brand');
+        const category = searchParams.get('category');
+        const gender = searchParams.get('gender');
+        const colour = searchParams.get('colour');
+        const brand = searchParams.get('brand');
         const condition = searchParams.get('condition');
-        const fit       = searchParams.get('fit');
-        const wash      = searchParams.get('wash');
-        const size      = searchParams.get('size');
-        const sortBy    = searchParams.get('sortBy');
-        const onSale    = searchParams.get('onSale');
+        const fit = searchParams.get('fit');
+        const wash = searchParams.get('wash');
+        const size = searchParams.get('size');
+        const sortBy = searchParams.get('sortBy');
+        const onSale = searchParams.get('onSale');
         const minPriceParam = searchParams.get('minPrice');
         const maxPriceParam = searchParams.get('maxPrice');
-        const searchParam   = searchParams.get('search');
+        const searchParam = searchParams.get('search');
 
         const filtersFromUrl = [];
-        if (category)  filtersFromUrl.push({ group: 'Category',  value: category });
-        if (gender)    filtersFromUrl.push({ group: 'Gender',    value: gender });
-        if (colour)    filtersFromUrl.push({ group: 'Colour',    value: colour });
-        if (brand)     filtersFromUrl.push({ group: 'Brand',     value: brand });
+        if (category) filtersFromUrl.push({ group: 'Category', value: category });
+        if (gender) filtersFromUrl.push({ group: 'Gender', value: gender });
+        if (colour) filtersFromUrl.push({ group: 'Colour', value: colour });
+        if (brand) filtersFromUrl.push({ group: 'Brand', value: brand });
         if (condition) filtersFromUrl.push({ group: 'Condition', value: condition });
-        if (fit)       filtersFromUrl.push({ group: 'Fit',       value: fit });
-        if (wash)      filtersFromUrl.push({ group: 'Wash',      value: wash });
-        if (size)      filtersFromUrl.push({ group: 'Size',      value: size });
+        if (fit) filtersFromUrl.push({ group: 'Fit', value: fit });
+        if (wash) filtersFromUrl.push({ group: 'Wash', value: wash });
+        if (size) filtersFromUrl.push({ group: 'Size', value: size });
         if (onSale === 'true') filtersFromUrl.push({ group: 'OnSale', value: 'true' });
 
         setActiveFilters(filtersFromUrl);
@@ -77,6 +87,7 @@ export default function ProductsPage() {
         setMinPrice(minPriceParam || '');
         setMaxPrice(maxPriceParam || '');
         setSearch(searchParam || '');
+        setFiltersReady(true);
     }, [searchParams]);
 
     // Fetch the user's saved wishlist IDs once
@@ -86,11 +97,12 @@ export default function ProductsPage() {
             .then(token => fetch('/api/wishlist', { headers: { Authorization: `Bearer ${token}` } }))
             .then(res => res.json())
             .then(data => setWishlistIds(new Set((Array.isArray(data) ? data : []).map(p => p.id))))
-            .catch(() => {});
+            .catch(() => { });
     }, [user]);
 
     // Fetch products whenever filters, price range, or sort changes
     const fetchProducts = useCallback(async () => {
+        if (!filtersReady) return;
         setLoading(true);
         try {
             const params = new URLSearchParams();
@@ -108,8 +120,8 @@ export default function ProductsPage() {
             });
             if (minPrice) params.set('minPrice', minPrice);
             if (maxPrice) params.set('maxPrice', maxPrice);
-            if (sortBy)   params.set('sortBy',   sortBy);
-            if (search)   params.set('search',   search);
+            if (sortBy) params.set('sortBy', sortBy);
+            if (search) params.set('search', search);
 
             const res = await fetch(`/api/products?${params.toString()}`);
             const data = await res.json();
@@ -120,7 +132,7 @@ export default function ProductsPage() {
         } finally {
             setLoading(false);
         }
-    }, [activeFilters, minPrice, maxPrice, sortBy, search]);
+    }, [filtersReady, activeFilters, minPrice, maxPrice, sortBy, search]);
 
     useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
@@ -180,6 +192,7 @@ export default function ProductsPage() {
                                 clearFilters={clearFilters}
                                 minPrice={minPrice} setMinPrice={setMinPrice}
                                 maxPrice={maxPrice} setMaxPrice={setMaxPrice}
+                                categories={categories}
                             />
                         </div>
                     </aside>
@@ -209,6 +222,7 @@ export default function ProductsPage() {
                                                 clearFilters={clearFilters}
                                                 minPrice={minPrice} setMinPrice={setMinPrice}
                                                 maxPrice={maxPrice} setMaxPrice={setMaxPrice}
+                                                categories={categories}
                                             />
                                         </SheetContent>
                                     </Sheet>
@@ -298,11 +312,10 @@ export default function ProductsPage() {
                                         key={page}
                                         size="sm"
                                         onClick={() => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                        className={`h-9 w-9 p-0 text-sm font-medium ${
-                                            page === currentPage
-                                                ? 'bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600'
-                                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                                        }`}
+                                        className={`h-9 w-9 p-0 text-sm font-medium ${page === currentPage
+                                            ? 'bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600'
+                                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                                            }`}
                                     >
                                         {page}
                                     </Button>

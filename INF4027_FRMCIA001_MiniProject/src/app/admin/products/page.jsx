@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, Pencil, Trash2, Loader2, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Loader2, Eye, X, ChevronLeft, ChevronRight, LayoutList, LayoutGrid } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +50,7 @@ export default function AdminProductsPage() {
     const [conditionFilter, setConditionFilter] = useState('all');
     const [deletingId, setDeletingId] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [viewMode, setViewMode] = useState('list');
 
     const fetchProducts = async () => {
         setLoading(true);
@@ -154,14 +155,14 @@ export default function AdminProductsPage() {
                             key={tab.value}
                             onClick={() => setStatusFilter(tab.value)}
                             className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${statusFilter === tab.value
-                                    ? 'bg-indigo-600 text-white shadow-sm'
-                                    : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-200 hover:text-indigo-600'
+                                ? 'bg-indigo-600 text-white shadow-sm'
+                                : 'bg-white text-slate-600 border border-slate-200 hover:border-indigo-200 hover:text-indigo-600'
                                 }`}
                         >
                             {tab.label}
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${statusFilter === tab.value
-                                    ? 'bg-white/20 text-white'
-                                    : 'bg-slate-100 text-slate-500'
+                                ? 'bg-white/20 text-white'
+                                : 'bg-slate-100 text-slate-500'
                                 }`}>
                                 {count}
                             </span>
@@ -226,13 +227,33 @@ export default function AdminProductsPage() {
                     </button>
                 )}
 
-                <span className="ml-auto text-xs text-slate-400 font-medium shrink-0">
-                    {processed.length === 0 ? '0 results' : (
-                        <>
-                            Showing <span className="text-slate-600">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, processed.length)}</span> of <span className="text-slate-600">{processed.length}</span>
-                        </>
-                    )}
-                </span>
+                <div className="ml-auto flex items-center gap-3">
+                    <span className="text-xs text-slate-400 font-medium shrink-0">
+                        {processed.length === 0 ? '0 results' : (
+                            <>
+                                Showing <span className="text-slate-600">{(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, processed.length)}</span> of <span className="text-slate-600">{processed.length}</span>
+                            </>
+                        )}
+                    </span>
+
+                    {/* View Toggle */}
+                    <div className="flex items-center bg-white border border-slate-200 rounded-lg overflow-hidden">
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`p-1.5 transition-colors ${viewMode === 'list' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                            title="List view"
+                        >
+                            <LayoutList className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`p-1.5 transition-colors ${viewMode === 'grid' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                            title="Grid view"
+                        >
+                            <LayoutGrid className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Pagination */}
@@ -253,11 +274,10 @@ export default function AdminProductsPage() {
                             key={page}
                             size="sm"
                             onClick={() => setCurrentPage(page)}
-                            className={`h-9 w-9 p-0 text-sm font-medium ${
-                                page === currentPage
+                            className={`h-9 w-9 p-0 text-sm font-medium ${page === currentPage
                                     ? 'bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600'
                                     : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                            }`}
+                                }`}
                         >
                             {page}
                         </Button>
@@ -275,13 +295,18 @@ export default function AdminProductsPage() {
                 </div>
             )}
 
-            {/* Table */}
-            <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
-                {loading ? (
-                    <div className="flex items-center justify-center py-16">
-                        <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
-                    </div>
-                ) : (
+            {/* Products — List or Grid */}
+            {loading ? (
+                <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm flex items-center justify-center py-16">
+                    <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
+                </div>
+            ) : processed.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm flex items-center justify-center py-16 text-slate-400">
+                    {hasActiveFilters ? 'No products match the current filters.' : 'No products yet. Add your first one!'}
+                </div>
+            ) : viewMode === 'list' ? (
+                /* ── TABLE VIEW ── */
+                <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader className="bg-slate-50/50">
@@ -357,20 +382,85 @@ export default function AdminProductsPage() {
                                         </TableCell>
                                     </TableRow>
                                 ))}
-                                {processed.length === 0 && (
-                                    <TableRow>
-                                        <TableCell colSpan={9} className="text-center py-12 text-slate-400">
-                                            {hasActiveFilters
-                                                ? 'No products match the current filters.'
-                                                : 'No products yet. Add your first one!'}
-                                        </TableCell>
-                                    </TableRow>
-                                )}
                             </TableBody>
                         </Table>
                     </div>
-                )}
-            </div>
+                </div>
+            ) : (
+                /* ── GRID / CARD VIEW ── */
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {processed.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE).map(product => (
+                        <div key={product.id} className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden group hover:shadow-md transition-shadow">
+                            {/* Image */}
+                            <div className="relative aspect-square bg-slate-100 overflow-hidden">
+                                {product.images?.[0] ? (
+                                    <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-sm font-bold text-slate-300 uppercase">No Image</div>
+                                )}
+                                {/* Status badge overlay */}
+                                <Badge
+                                    className={`absolute top-3 left-3 text-[10px] font-bold uppercase ${product.status === 'available'
+                                            ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
+                                            : 'bg-slate-100 text-slate-500'
+                                        }`}
+                                    variant="outline"
+                                >
+                                    {product.status}
+                                </Badge>
+                                {/* Views badge */}
+                                <div className="absolute top-3 right-3 inline-flex items-center gap-1 text-[10px] font-semibold text-slate-600 bg-white/90 backdrop-blur-sm border border-slate-200/60 px-2 py-1 rounded-full">
+                                    <Eye className="w-3 h-3" />{product.views ?? 0}
+                                </div>
+                            </div>
+
+                            {/* Card Body */}
+                            <div className="p-4">
+                                <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">{product.brand}</p>
+                                <p className="text-sm font-semibold text-slate-900 line-clamp-1 mt-0.5">{product.title}</p>
+
+                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2 text-[11px] text-slate-500">
+                                    <span>{product.category}</span>
+                                    {product.size && <span>· Size {product.size}</span>}
+                                    {product.colour && <span>· {product.colour}</span>}
+                                </div>
+
+                                <div className="flex items-center justify-between mt-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-base font-bold text-slate-900">{formatPrice(product.price)}</span>
+                                        <Badge variant="outline" className={`text-[9px] font-bold uppercase rounded-sm ${getConditionStyles(product.condition)}`}>
+                                            {product.condition}
+                                        </Badge>
+                                    </div>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => router.push(`/admin/products/${product.id}/edit`)}
+                                        className="flex-1 h-8 text-xs font-medium gap-1.5 border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200"
+                                    >
+                                        <Pencil className="w-3 h-3" /> Edit
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleDelete(product.id)}
+                                        disabled={deletingId === product.id}
+                                        className="h-8 w-8 p-0 border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200"
+                                    >
+                                        {deletingId === product.id
+                                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            : <Trash2 className="w-3.5 h-3.5" />}
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

@@ -9,8 +9,7 @@ import {
     AccordionTrigger
 } from "@/components/ui/accordion";
 
-const FILTERS = {
-    Category: ["Jeans", "Jackets", "Shorts", "Skirts", "Overalls", "Shirts", "Accessories"],
+const STATIC_FILTERS = {
     Brand: ["Levi's", "Wrangler", "Lee", "Diesel", "G-Star RAW", "Guess", "Mr Price", "Woolworths", "Cotton On"],
     Colour: ["Blue", "Dark Indigo", "Black", "White", "Grey", "Green", "Olive", "Beige / Tan", "Brown", "Pink", "Red", "Burgundy", "Purple", "Orange", "Yellow", "Multi / Pattern"],
     Size: ["XXS", "XS", "S", "M", "L", "XL", "XXL", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "38", "40", "42"],
@@ -24,7 +23,14 @@ const FILTERS = {
 
 
 
-export default function FilterSidebar({ activeFilters, toggleFilter, clearFilters, minPrice, setMinPrice, maxPrice, setMaxPrice }) {
+export default function FilterSidebar({ activeFilters, toggleFilter, clearFilters, minPrice, setMinPrice, maxPrice, setMaxPrice, categories }) {
+    // Build filters with dynamic categories from DB, falling back to static defaults
+    const FILTERS = {
+        Category: categories && categories.length > 0
+            ? categories.map(c => c.name || c)
+            : ["Jeans", "Jackets", "Shorts", "Skirts", "Overalls", "Shirts", "Accessories"],
+        ...STATIC_FILTERS
+    };
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between pb-2">
